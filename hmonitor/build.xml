@@ -83,8 +83,10 @@
   <target name="ant"/>
 
 
-  <target name="jenkins-rpm" depends="clean, rpm"/>
-  <target name="jenkins-test" depends="clean, test"/>
+  <target name="jenkins-rpm" depends="clean, rpm"
+     description="RPM action for Jenkins builds"/>
+  <target name="jenkins-test" depends="clean, test"
+    description="Test target for Jenkins builds"/>
 
   <target name="init">
 
@@ -265,7 +267,6 @@
 
 
   <target name="ivy-properties" depends="init">
-    <property name="ivy.version" value="2.2.0"/>
     <property name="ivy.dir" location="${build.dir}/ivy"/>
     <property name="ivy.lib.dir" location="${ivy.dir}/lib"/>
     <property name="ivy.user.dir" location="${user.home}/.ivy"/>
@@ -324,7 +325,8 @@ again, but it does ensure your machine isn't building with artifacts that no lon
     <ivy:retrieve pattern="${ivy.retrieve.path}" sync="true"/>
   </target>
 
-  <target name="ivy-report" depends="ivy-resolve">
+  <target name="ivy-report" depends="ivy-resolve"
+    description="Generate Ivy dependency reports">
     <ivy:report todir="${ivy.reports.dir}"/>
     <echo>published Ivy report to
       ${ivy.reports.dir}
@@ -332,7 +334,8 @@ again, but it does ensure your machine isn't building with artifacts that no lon
   </target>
 
   <!--publish master artifacts-->
-  <target name="ivy-publish" depends="packaged">
+  <target name="ivy-publish" depends="packaged"
+    description="Publish the JAR artifact to the local ivy repository">
     <ivy:publish resolver="local" pubrevision="${hmonitor.version}"
       overwrite="true"
       conf="master"
@@ -372,7 +375,7 @@ again, but it does ensure your machine isn't building with artifacts that no lon
   <!-- ========================================================== -->
 
   <!--
-  Declare the groovy tasks if groovy is enabled
+  Declare the groovy tasks
   -->
   <target name="groovy-tasks" depends="declare-classpaths">
     <taskdef name="groovyc"
@@ -401,6 +404,7 @@ again, but it does ensure your machine isn't building with artifacts that no lon
   </target>
 
   <!-- ========================================================== -->
+  <!-- compile stage -->
   <!-- ========================================================== -->
 
 
@@ -423,10 +427,6 @@ again, but it does ensure your machine isn't building with artifacts that no lon
     </copy>
   </target>
 
-  <target name="ready-to-compile-tests"
-    depends="packaged"
-    />
-
 
   <target name="packaged" depends="compile"
     description="create the file">
@@ -440,6 +440,11 @@ again, but it does ensure your machine isn't building with artifacts that no lon
     </jar>
     <echo level="verbose">created package ${target.jar}</echo>
   </target>
+
+
+  <target name="ready-to-compile-tests"
+    depends="packaged"
+    />
 
 
   <target name="compile-tests" depends="ready-to-compile-tests">
@@ -462,22 +467,13 @@ again, but it does ensure your machine isn't building with artifacts that no lon
       includes="**/*"/>
   </target>
 
+  <!--
+  Get in the state from which tests can run
+  -->
   <target name="ready-to-test" depends="package-tests, init-tests"/>
 
-  <!--
-  Init the tests by loading in the target configuration.
-  This will fail if the target dir or file is not found. 
-  -->
-  <target name="load-target-configuration" depends="init">
-    <property name="test.propfile"
-      location="${target.conf.dir}/${test.server}.properties"/>
-    <loadproperties srcfile="${test.propfile}"/>
-  </target>
 
-  <target name="init-tests" depends="load-target-configuration">
-    <property name="test.propfile"
-      location="${target.conf.dir}${test.server}.properties"/>
-    <loadproperties srcfile="${test.propfile}"/>
+  <target name="init-tests" depends="init">
   </target>
 
   <target name="test" depends="junit, junit-report"/>
@@ -506,8 +502,18 @@ again, but it does ensure your machine isn't building with artifacts that no lon
     </ext-junit>
   </target>
 
+  <!--
+  Init system tests and deployment by loading in the target configuration.
+  This will fail if the target dir or file is not found. 
+  -->
+  <target name="load-target-configuration" depends="init">
+    <property name="test.propfile"
+      location="${target.conf.dir}/${test.server}.properties"/>
+    <loadproperties srcfile="${test.propfile}"/>
+  </target>
 
-  <target name="systest-junit" depends="ready-to-test">
+
+  <target name="systest-junit" depends="ready-to-test,load-target-configuration">
     <ext-junit
       errorProperty="system.test.failed"
       failureProperty="system.test.failed"
@@ -540,17 +546,6 @@ again, but it does ensure your machine isn't building with artifacts that no lon
     </echo>
   </target>
 
-  <target name="junit-report2" depends="init">
-    <junitreport todir="${build.test.data.dir}">
-      <fileset dir="${build.test.data.dir}">
-        <include name="TEST-*.xml"/>
-      </fileset>
-      <report format="frames" todir="${build.test.reports.dir}"/>
-    </junitreport>
-    <echo>Test data in
-      ${build.test.reports.dir}
-    </echo>
-  </target>
 
 
   <!-- ========================================================== -->
@@ -613,7 +608,8 @@ again, but it does ensure your machine isn't building with artifacts that no lon
   <!-- Doc -->
   <!-- ========================================================== -->
 
-  <target name="doc" depends="html, javadoc"/>
+  <target name="doc" depends="html, javadoc"
+    description="Create documentation"/>
 
   <target name="html" depends="init">
     <property name="configuration.xsl" location="doc/configuration.xsl"/>
@@ -623,12 +619,14 @@ again, but it does ensure your machine isn't building with artifacts that no lon
     </xslt>
   </target>
 
-  <target name="javadoc" depends="init-javadoc,compile">
+  <target name="javadoc" depends="init-javadoc,compile"
+    description="Create the javadocs">
     <ext-javadoc
       packagenames="${javadoc.packages}"
       sourcepath="src/main/java:src/main/groovy"
       destdir="${build.doc.javadoc.dir}"
       />
+    <echo>Javadocs are now at ${build.doc.javadoc.dir}/index.html</echo>
   </target>
 
 
@@ -665,6 +663,7 @@ again, but it does ensure your machine isn't building with artifacts that no lon
 
   <!-- ========================================================== -->
   <!-- Native code binding-->
+  <!-- This needs gcc on the command line as well as the vSphere Guest Application SDK-->
   <!-- ========================================================== -->
 
 
@@ -817,13 +816,7 @@ again, but it does ensure your machine isn't building with artifacts that no lon
     if="dropbox.dist.dir">
     <delete dir="${dropbox.dist.dir}/rpm"/>
     <copy todir="${dropbox.dist.dir}/rpm" file="${rpms.vsphere.tar.gz}"/>
-  </target>
-
-  <target name="dropbox-rpm2" depends="rpm-tar"
-    description="copy the RedHat RPMs to dropbox if 'dropbox.dist2.dir' is set"
-    if="dropbox.dist2.dir">
-    <delete dir="${dropbox.dist2.dir}/rpm"/>
-    <copy todir="${dropbox.dist2.dir}/rpm" file="${rpms.tar.gz}"/>
+    <copy todir="${dropbox.dist.dir}/rpm" file="${rpms.tar.gz}"/>
   </target>
 
   <target name="rpms" depends="rpm"/>
