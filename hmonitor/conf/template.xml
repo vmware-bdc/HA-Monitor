@@ -1,0 +1,212 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<!--
+ Template monitor configuration
+-->
+<configuration>
+
+  <property>
+    <name>fs.default.name</name>
+    <description>The filesystem to work with -for monitoring,
+      this must be an HDFS filesystem.
+      This hostname in the URL must match the external hostname
+      of the VM hosting the namenode.
+    </description>
+    <value>hdfs://HOSTNAME:8020</value>
+  </property>
+
+  <property>
+    <name>mapred.job.tracker</name>
+    <description>The Job Tracker in the cluster. This
+      is used when monitoring/interacting with the Job Tracker,
+      and must match the external hostname of the Job Tracker.
+    </description>
+    <value>HOSTNAME:8021</value>
+  </property>
+
+  <property>
+    <name>service.monitor.report.classname</name>
+    <description>The class to use for reporting heartbeats. This is a low level
+      parameter which must only be changed when using alternative monitors for
+      different infrastructures.
+    </description>
+    <value>org.apache.ambari.servicemonitor.reporting.LogReporter</value>
+  </property>
+
+  <property>
+    <name>service.monitor.report.interval</name>
+    <description>Interval in milliseconds for sending heartbeats
+      to vSphere
+    </description>
+    <value>7000</value>
+  </property>
+
+  <property>
+    <name>service.monitor.probe.interval</name>
+    <description>Time in milliseconds between the last probe cycle
+      ending and the new one beginning.
+      The shorter this cycle, the faster failures are detected,
+      but more CPU, network and
+      server load can be generated.
+    </description>
+    <value>11000</value>
+  </property>
+
+  <property>
+    <name>service.monitor.probe.timeout</name>
+    <description>How long in milliseconds does the probe loop have to be blocked
+      before that is considered a liveness failure. This is the property used
+      to distinguish GC pauses from a hung process -it must be greater than
+      the worst-case GC pause encountered by the monitored process.
+    </description>
+    <value>120000</value>
+  </property>
+
+  <property>
+    <name>service.monitor.bootstrap.timeout</name>
+    <description>The time in milliseconds for the monitor to wait for the
+      service to bootstrap and become available before it reports a failure
+      to the management infrastructure
+    </description>
+    <value>120000</value>
+  </property>
+
+  <property>
+    <name>service.monitor.pidprobe.enabled</name>
+    <description>Flag to indicate whether or not the Process ID Probe is enabled.</description>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>service.monitor.pidprobe.pidfile</name>
+    <description>
+      The file containing the Process ID (PID) of the launched service.
+    </description>
+    <value></value>
+  </property>
+
+  <property>
+    <name>service.monitor.portprobe.enabled</name>
+    <description>Flag to indicate whether or not the TCP Port Probe is enabled.</description>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>service.monitor.portprobe.port</name>
+    <description>The port that the TCP Port Probe will probe.</description>
+    <value>50070</value>
+  </property>
+
+  <property>
+    <name>service.monitor.portprobe.host</name>
+    <description>The host for the TCP Port to probe. As the NameNode and Job Tracker
+      only listen on the specific NIC/hostname given to them, to monitor
+      one of these services the hostname MUST be set to the external hostname.
+    </description>
+    <value>HOSTNAME</value>
+  </property>
+
+  <property>
+    <name>service.monitor.portprobe.connect.timeout</name>
+    <description>The timeout in milliseconds of the TCP Port probe connection attempt.
+      This must be greater than zero; larger values increase the time in which a TCP connection
+      attempt that does not explicitly get rejected (via a connection refused response)
+      waits for a response. Too short a value and the probe will give up prematurely.
+    </description>
+    <value>500</value>
+  </property>
+
+  <property>
+    <name>service.monitor.lsprobe.enabled</name>
+    <description>Flag to indicate whether or not the HDFS LS probe is enabled.</description>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>service.monitor.lsprobe.path</name>
+    <description>The path within the HDFS filesystem for the HDFS LS port to list.</description>
+    <value>/</value>
+  </property>
+
+  <property>
+    <name>service.monitor.webprobe.enabled</name>
+    <description>Flag to indicate whether or not the Web Probe is enabled.</description>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>service.monitor.webprobe.url</name>
+    <description>The HTTP or HTTPS URL for the Web Probe to fetch via an HTTP GET request.
+      As the Namenode and Job Tracker listen for HTTP requests on all IP addresses of a server, "localhost"
+      can be used as the hostname in these URLs. This eliminates the need to configure the URL to
+      the specific hostname of a service -merely the port in use.
+      However, using the external hostname makes sure the request goes via the external network card, so
+      verifying that the service is up on the external address, that the external hostname is valid, and that
+      there is no firewall blocking external connections to the web server.
+    </description>
+    <value>http://HOSTNAME:50070/</value>
+  </property>
+
+  <property>
+    <name>service.monitor.webprobe.min</name>
+    <description>The minimum acceptable HTTP code to be returned from the HTTP request. This is the
+      status code after any HTTP redirect responses have been processed -the web probe follows
+      such redirects. Default value is 200 -HTTP's "OK" response.
+    </description>
+    <value>200</value>
+  </property>
+
+  <property>
+    <name>service.monitor.webprobe.max</name>
+    <description>The maximum acceptable HTTP code to be returned from the HTTP request. This is the
+      status code after any HTTP redirect responses have been processed -the web probe follows
+      such redirects. Default value is 200 -HTTP's "OK" response.
+    </description>
+    <value>200</value>
+  </property>
+
+  <property>
+    <name>service.monitor.webprobe.connect.timeout</name>
+    <description>The timeout in milliseconds of the Web Probe's HTTP connection attempt</description>
+    <value>1000</value>
+  </property>
+
+
+  <property>
+    <name>service.monitor.jtprobe.enabled</name>
+    <description>Flag to enable the Job Tracker Probe's monitoring of the Job Tracker identified in the "mapred.job.tracker"
+      property
+    </description>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>service.monitor.dependency.dfslive</name>
+    <description>Flag to indicate the monitored application depends on DFS going live
+      before it starts -so the monitor should not worry about the application appearing not to
+      bootstrap until then.
+    </description>
+    <value>false</value>
+  </property>
+
+
+</configuration>

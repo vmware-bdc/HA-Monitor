@@ -1,0 +1,119 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<ivysettings>
+  <property name="ivy.resolver"
+    value="default" override="false"/>
+  <!-- consider
+    latest-revision when resolving issues
+    strict to force conflicts to be fixed.
+  -->
+  <property name="ivy.conflict.manager"
+    value="latest-revision" override="false"/>
+  <property name="ivy.ibiblio.root"
+    value="http://repo1.maven.org/maven2/" override="false"/>
+  <property name="maven.restlet.org"
+    value="http://maven.restlet.org/" override="false"/>
+  <property name="maven2.pattern"
+    value="[organisation]/[module]/[revision]/[module]-[revision]"/>
+  <property name="maven2.pattern.ext"
+    value="${maven2.pattern}(-[classifier]).[ext]"/>
+  <property name="m2.fs.repo.dir" value="${user.home}/.m2/repository"/>
+
+
+  <!-- pull in the local repository -->
+  <include url="${ivy.default.conf.dir}/ivyconf-local.xml"/>
+  <settings
+    defaultResolver="${ivy.resolver}"
+    defaultConflictManager="${ivy.conflict.manager}"
+    />
+  <resolvers>
+
+    <filesystem name="team">
+      ivys="true"
+      artifacts="true"
+      checkModified="true"
+      m2compatible="true" >
+      <artifact
+        pattern="${repository.dir}/${maven2.pattern.ext}"/>
+      <ivy pattern="${repository.dir}/${maven2.pattern}.xml"/>
+    </filesystem>
+    <filesystem name="team2">
+      artifacts="true"
+      usepom="true"
+      checkModified="true"
+      m2compatible="true" >
+      <artifact
+        pattern="${repository.dir}/${maven2.pattern.ext}"/>
+    </filesystem>
+    <filesystem name="fs-m2"
+      m2compatible="true">
+      <artifact pattern="${m2.fs.repo.dir}/${maven2.pattern.ext}"/>
+      <ivy pattern="${m2.fs.repo.dir}/${maven2.pattern}.pom"/>
+    </filesystem>
+    <filesystem name="fs-m2-no-pom"
+      m2compatible="true">
+      <artifact pattern="${m2.fs.repo.dir}/${maven2.pattern.ext}"/>
+    </filesystem>
+
+
+    <ibiblio name="maven2"
+      root="${ivy.ibiblio.root}"
+      pattern="${maven2.pattern.ext}"
+      m2compatible="true"
+      />
+    <ibiblio name="maven.restlet.org"
+      root="${maven.restlet.org}"
+      pattern="${maven2.pattern.ext}"
+      m2compatible="true"
+      />
+    <ibiblio name="java.net"
+      root="http://download.java.net/maven/2/"
+      pattern="${maven2.pattern.ext}"
+      m2compatible="true"
+      />
+
+    <!--HWX Repo-->
+    <ibiblio name="hortonworks"
+      root="http://s3.amazonaws.com/repo.hortonworks.com/release"
+      pattern="${maven2.pattern.ext}"
+      m2compatible="true"
+      />
+
+
+    <chain name="internal">
+      <resolver ref="local"/>
+      <resolver ref="team"/>
+    </chain>
+
+    <chain name="default" dual="true">
+      <resolver ref="internal"/>
+      <resolver ref="hortonworks"/>
+      <resolver ref="fs-m2"/>
+      <resolver ref="maven2"/>
+      <resolver ref="java.net"/>
+    </chain>
+
+  </resolvers>
+
+  <modules>
+    <!--Here's a list of things we build locally or pull from our own repository-->
+    <!--<module organisation="org.apache.hadoop" name=".*" resolver="internal"/>-->
+
+  </modules>
+</ivysettings>

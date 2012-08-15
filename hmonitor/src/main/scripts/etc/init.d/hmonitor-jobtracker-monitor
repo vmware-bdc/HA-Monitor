@@ -1,0 +1,128 @@
+#!/bin/sh
+# 
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# 
+# Starts a Hadoop JobTracker monitor
+# 
+# chkconfig: 2345 91 9
+# description: Hadoop JobTracker monitor
+
+. /etc/rc.d/init.d/functions
+USER=hdfs
+HUSER=${USER}
+. /etc/hadoop/conf/hadoop-env.sh
+
+HADOOP_HOME=${HADOOP_HOME:-/usr/lib/hadoop}
+export HADOOP_PREFIX="/usr/lib/hadoop"
+
+
+RETVAL=0
+
+
+desc="Hadoop JobTracker Monitor Daemon"
+
+NAME="hmonitor-jobtracker-monitor"
+LOCKFILE="/var/lock/subsys/$NAME"
+SLEEP_TIME=5
+
+MONITOR_HOME=/usr/lib/hadoop/monitor
+MONITOR_CONF_DIR=$MONITOR_HOME
+MONITOR_CLASS="org.apache.ambari.servicemonitor.services.JobTrackerMonitor"
+MONITOR_CONF_FILE="$MONITOR_HOME/vm-jobtracker.xml"
+
+HUSER=mapred
+export HADOOP_PID_DIR=${HADOOP_PID_DIR:-/var/run/hadoop}
+PIDFILE="${HADOOP_PID_DIR}/hadoop-$HUSER-${MONITOR_CLASS}.pid"
+
+
+LOGDIR=/var/log/hadoop
+export HADOOP_CLASSPATH="$MONITOR_HOME/hmonitor.jar:$MONITOR_HOME/extras/*"
+
+HADOOP_CONF_DIR=${HADOOP_CONF_DIR:-/etc/hadoop/conf}
+ 
+start() {
+#  echo "PIDFILE=$PIDFILE, user=$HUSER, configuration=$MONITOR_CONF_FILE"
+  echo -n $"Starting ($NAME): "
+  daemon --user $HUSER ${HADOOP_PREFIX}/bin/hadoop-daemon.sh --config "${HADOOP_CONF_DIR}" start $MONITOR_CLASS -conf $MONITOR_CONF_FILE
+  RETVAL=$?
+  echo
+  [ $RETVAL -eq 0 ] && touch $LOCKFILE
+  return $RETVAL
+}
+
+stop() {
+  echo -n $"Stopping $desc ($NAME): "
+  daemon --user $HUSER ${HADOOP_PREFIX}/bin/hadoop-daemon.sh --config "${HADOOP_CONF_DIR}" stop $MONITOR_CLASS
+  RETVAL=$?
+  echo
+  [ $RETVAL -eq 0 ] && rm -f $LOCKFILE $PIDFILE
+  return $RETVAL
+}
+
+checkstatus(){
+  status -p $PIDFILE ${JAVA_HOME}/bin/java
+  RETVAL=$?
+  return $RETVAL
+}
+
+restart() {
+  stop
+  start
+}
+
+condrestart(){
+  [ -e $LOCKFILE ] && restart || :
+}
+
+
+check_for_root() {
+  if [ $(id -ur) -ne 0 ]; then
+    echo 'Error: root user required'
+    echo
+    exit 1
+  fi
+}
+
+hadoopservice() {
+  case "$1" in
+  start)
+    check_for_root
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    checkstatus
+    ;;
+  restart)
+    restart
+    ;;
+  condrestart|try-restart)
+    condrestart
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart}"
+    exit 1
+  esac
+}
+
+
+
+### ENTRY POINT SCRIPT ###
+
+hadoopservice "$1"
+exit ${RETVAL}

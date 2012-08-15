@@ -1,0 +1,71 @@
+HMonitor shell commands
+=======================
+
+
+
+exec-lsdir
+----------
+
+ -a,--attempts <arg>       number of attempts (or -1 for none)
+ -b,--blocking             blocking operations
+ -c,--color                color output
+ -cf,--conf <arg>          conf
+ -d,--dir <arg>            directory
+ -fs,--filesystem <arg>    filesystem
+ -h,--history              build a history of all operations
+ -jt,--jobtracker <arg>    jobtracker
+ -l,--faillimit <arg>      number of failures before halting (or -1 for
+                           none)
+ -s,--successlimit <arg>   number of successes (or -1 for none)
+ -t,--sleeptime <arg>      sleep time in milliseconds
+ -v,--verbose              verbose output
+
+
+lsdir.sh
+--------
+
+An extension of lsdir that provides (unspecified) "default" values to exec-lsdir
+
+lsdir.sh <configuration.xml>
+
+
+bulkjobs.sh
+-----------
+
+Starts one or more mapreduce jobs (with an inter-job delay), monitoring the
+progress of each. The jobs that are queued as special "file using" mappers
+and reducers that can be configured to execute file stat operations on each
+task with a configurable probability of doing so (and, for repeatability, 
+configurable seeds). Every map and reduce can also be given a sleep time.
+
+The result is that these are low-load tasks performing operations that invoke
+the namenode more than most tasks, so pick up problems with NN availability faster.
+
+
+usage: BulkFileJobSubmitter [-archives <paths>] [-conf <configuration file>] [-D
+       <property=value>] [-files <paths>] [-fs <local|namenode:port>] [-j <arg>]
+       [-jt <local|jobtracker:port>] [-l <arg>] [-libjars <paths>] [-o <arg>]
+       [-p] [-tokenCacheFile <tokensFile>] [-u] [-x]
+BulkFileJobSubmitter
+ -archives <paths>              comma separated archives to be unarchived on the
+                                compute machines.
+ -conf <configuration file>     specify an application configuration file
+ -D <property=value>            use value for given property
+ -files <paths>                 comma separated files to be copied to the map
+                                reduce cluster
+ -fs <local|namenode:port>      specify a namenode
+ -j,--jobs <arg>                number of jobs to submit
+ -jt <local|jobtracker:port>    specify a job tracker
+ -l,--delay <arg>               delay in millis between job submissions
+ -libjars <paths>               comma separated jar files to include in the
+                                classpath.
+ -o,--output <arg>              output directory in the target filesystem
+ -p,--dump                      dump the current configuration
+ -tokenCacheFile <tokensFile>   name of the file with the tokens
+ -u,--usage                     Print the Usage
+ -x,--x                         delete the output directory
+Arguments
+
+Example:
+bulkjobs.sh -x -jt workernode:8021 -fs hdfs://workernode:8020 --conf conf/bulk-job-submission.xml -j 8 -l 1000
+

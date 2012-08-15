@@ -1,0 +1,1464 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ 
+  
+  Some of the code below is from Ant in Action; ASF licensed.
+  Some of the targets were originally from the SmartFrog project, again ASF licensed
+  
+  -->
+
+<project name="hmonitor"
+  default="default"
+  xmlns:ivy="antlib:org.apache.ivy.ant">
+  <description>
+    This file is the build and deploy script for the monitor code
+
+    Deployment layout
+    /usr/lib/hadoop/monitor -the monitor
+    /conf -the configuration files (or symlink)
+    /core -the core hadoop libraries (or symlinks)
+    /extras -extra libs not in the normal Hadoop classpath
+    /lib -the hadoop dependencies
+
+
+    the tar tasks create a version of this with all the
+    dependencies in the right place.
+
+    The rpm targets create an RPM in which the core/ and lib/ entries
+    are just symlinks to /usr/lib/hadoop and /user/lib/hadoop/lib,
+    conf -> /etc/conf
+
+    The test and systest targets run unit and system tests, respectively.
+
+    There are some targets to scp RPMs to remote machines;
+    more for pulling over config scripts for Linux HA
+
+    Config points
+    =============
+    * ./build.properties: an optional properties file read before anything else
+    * ../project.properties: an optional properties file read next. This is for some
+    shared project settings outside the repo
+
+    Things you must configure
+    * A GSDK
+
+  </description>
+
+
+  <property file="build.properties"/>
+  <property file="../project.properties"/>
+  <property name="project.version" value="0.1"/>
+  <property name="hmonitor.version" value="${project.version}"/>
+  <property file="libraries.properties"/>
+
+  <!-- default target -->
+  <target name="default" depends="tar"
+    description="default target creates the tar"/>
+
+  <!-- here to catch command line cut and paste errors-->
+  <target name="ant"/>
+
+
+  <target name="jenkins-rpm" depends="clean, rpm"/>
+  <target name="jenkins-test" depends="clean, test"/>
+
+  <target name="init">
+
+    <macrodef name="newdir">
+      <attribute name="name"/>
+      <attribute name="location"/>
+      <sequential>
+        <property name="@{name}" location="@{location}"/>
+        <mkdir dir="@{location}"/>
+      </sequential>
+    </macrodef>
+
+    <property name="guest.app.sdk" location="../GuestAppSDK"/>
+    <!--This is the filename of the monitor file from vsphere-->
+    <property name="libappmonitorlib.so" location="${guest.app.sdk}/lib64/libappmonitorlib.so"/>
+    <property name="repository.dir" location="../repository"/>
+    <property name="gcc.mode" value="-m64"/>
+    <property name="jdk.home" location="${java.home}"/>
+    <property name="java.include.dir" location="${jdk.home}/include"/>
+    <property name="java.include.linux.dir" location="${java.include.dir}/linux"/>
+
+
+    <newdir name="generated.c.dir" location="src/main/c"/>
+    <newdir name="compiled.java.dir" location="target/classes"/>
+    <newdir name="build.dir" location="target"/>
+    <newdir name="build.classes.dir" location="${build.dir}/classes"/>
+    <newdir name="build.test.dir" location="${build.dir}/test"/>
+    <newdir name="build.test.classes.dir" location="${build.test.dir}/classes"/>
+    <newdir name="build.test.data.dir" location="${build.test.dir}/data"/>
+    <newdir name="build.test.reports.dir" location="${build.test.dir}/reports"/>
+    <newdir name="build.doc.dir" location="${build.dir}/doc"/>
+    <newdir name="build.cc.dir" location="target/c"/>
+    <!-- this is the filname of our generated JNI artifact-->
+    <property name="lib.filename" value="libVMGuestAppMonitorNative.so"/>
+    <newdir name="target.lib.dir" location="${build.dir}/lib/"/>
+    <newdir name="target.core.dir" location="${build.dir}/core/"/>
+    <newdir name="target.extras.dir" location="${build.dir}/extras/"/>
+    <property name="target.lib.file" location="${target.lib.dir}/${lib.filename}"/>
+    <property name="scm.lib.file" location="lib/lib64/${lib.filename}"/>
+    <newdir name="test.reports.dir" location="${build.test.dir}/reports"/>
+    <newdir name="test.work.dir" location="${build.test.dir}/work"/>
+    <newdir name="dist.dir" location="dist"/>
+    <newdir name="dist.lib.dir" location="${dist.dir}/lib"/>
+    <newdir name="dist.doc.dir" location="${dist.dir}/docs"/>
+    <newdir name="dist.bin.dir" location="${dist.dir}/bin"/>
+    <newdir name="dist.src.dir" location="${dist.dir}/src"/>
+
+
+    <property name="c.source.file" location="src/main/c/org_apache_ambari_servicemonitor_reporting_vsphere_VMGuestApi.c"/>
+    <property name="log4j.properties.dir" location="src/main/resources/"/>
+    <property name="log4j.properties" location="${log4j.properties.dir}/log4j.properties"/>
+    <property name="artifact.name" value="${ant.project.name}"/>
+    <property name="jarfile.stub"
+      value="${artifact.name}-${project.version}"/>
+    <property name="jarfile.name" value="${jarfile.stub}.jar"/>
+
+    <property name="target.jar"
+      location="${build.dir}/${jarfile.name}"/>
+
+    <property name="test.jar.name" value="${artifact.name}-test-${project.version}.jar"/>
+    <property name="test.jar"
+      location="${build.dir}/${test.jar.name}"/>
+
+    <!-- directory containing target configurations. -->
+    <property name="target.conf.dir" location="src/test/targets"/>
+
+
+    <!--     name JAR files that tests go into. this is for signing all
+       test code (inc deployment descriptors) for deployment onto secure
+       boxes
+    -->
+    <!-- a macro to define a property to a new directory, and create the directory-->
+
+    <!--preset to copy with ant property expansion (and always overwrite)-->
+    <presetdef name="expandingcopy">
+      <copy overwrite="true">
+        <filterchain>
+          <expandproperties/>
+        </filterchain>
+      </copy>
+    </presetdef>
+
+    <macrodef name="mvn">
+      <attribute name="target"/>
+      <sequential>
+        <exec failonerror="true" executable="mvn">
+          <arg line="@{target}"/>
+        </exec>
+      </sequential>
+    </macrodef>
+
+    <propertyset id="daemon-properties">
+      <propertyref prefix="test."/>
+      <propertyref prefix="run."/>
+      <!-- Log settings for various tools-->
+      <propertyref prefix="org.mortbay.log."/>
+      <propertyref prefix="log4j."/>
+      <propertyref prefix="org.apache.commons.logging."/>
+    </propertyset>
+
+    <!-- junit wrapper;
+    enables forking, turns assertions on in the code,
+    and enables XML output.
+    Timeout is set to 10 minutes, so we dont ever hang.
+    User is still required to
+      -specify failure properties
+      -provide test or batch test patterns
+      -set up the classpath. Dont forget to
+      include a reference to smartfrog.classpath to get the core stuff
+    -->
+    <!-- set to withOutAndErr for more details-->
+    <property name="junit.printsummary" value="off"/>
+    <property name="junit.showoutput" value="true"/>
+    <!-- set to brief for brief, plain for more -->
+    <property name="junit.printformatter" value="plain"/>
+    <property name="junit.timeout" value="240000"/>
+    <!-- extended timeout for system tests-->
+    <property name="junit.systest.timeout" value="6000000"/>
+    <property name="junit.memory" value="512m"/>
+    <property name="junit.fork.mode" value="once"/>
+    <property name="junit.jvmargs" value="-Djava.net.preferIPv4Stack=true"/>
+
+    <presetdef name="ext-junit">
+      <junit printsummary="${junit.printsummary}"
+        fork="true"
+        forkmode="${junit.fork.mode}"
+        maxmemory="${junit.memory}"
+        includeantruntime="true"
+        showoutput="true"
+        timeout="${junit.timeout}"
+        >
+        <jvmarg value="-ea"/>
+        <jvmarg value="-esa"/>
+        <jvmarg line="${junit.jvmargs}"/>
+
+        <!--copy all proxy settings from the running JVM-->
+        <syspropertyset refid="daemon-properties"/>
+        <!-- #Tests take system property parameters -->
+        <!-- #Formatters for capture and display -->
+        <formatter type="xml"/>
+        <formatter type="${junit.printformatter}" usefile="false"/>
+      </junit>
+    </presetdef>
+
+    <!-- reporting wrapper -->
+    <macrodef name="ext-junitreport">
+      <attribute name="data"/>
+      <attribute name="reports"/>
+      <sequential>
+        <junitreport todir="@{data}">
+          <fileset dir="@{data}">
+            <include name="TEST-*.xml"/>
+          </fileset>
+          <report format="frames" todir="@{reports}"/>
+        </junitreport>
+      </sequential>
+    </macrodef>
+
+    <macrodef name="ext-test-report">
+      <attribute name="data"/>
+      <attribute name="reports"/>
+      <attribute name="failed"/>
+      <sequential>
+        <ext-junitreport data="@{data}" reports="@{reports}"/>
+        <!-- DO NOT ATTEMPT TO ALIGN THE TEXT IT ONLY RUINS THE PRESENTATION-->
+        <fail if="@{failed}">Tests failed see:
+          @{reports}
+        </fail>
+      </sequential>
+    </macrodef>
+
+  </target>
+
+
+  <!-- ========================================================== -->
+  <!-- Ivy Support -->
+  <!-- ========================================================== -->
+
+
+  <target name="ivy-properties" depends="init">
+    <property name="ivy.version" value="2.2.0"/>
+    <property name="ivy.dir" location="${build.dir}/ivy"/>
+    <property name="ivy.lib.dir" location="${ivy.dir}/lib"/>
+    <property name="ivy.user.dir" location="${user.home}/.ivy"/>
+    <property name="ivy.local.dir" location="${ivy.user.dir}/local"/>
+    <property name="ivy.cache.dir" location="${ivy.user.dir}/cache"/>
+
+    <!--here to ensure that any operations on the caches have somewhere to
+    work from-->
+    <mkdir dir="${ivy.cache.dir}"/>
+    <mkdir dir="${ivy.local.dir}"/>
+
+    <newdir name="ivy.reports.dir" location="${ivy.dir}/reports"/>
+
+    <property name="ivysettings.dir" location="ivy/"/>
+    <property name="ivysettings.xml" location="${ivysettings.dir}/ivysettings.xml"/>
+
+    <property name="ivy.jar"
+      location="lib/jars/ivy-${ivy.version}.jar"/>
+
+
+    <mkdir dir="${ivy.reports.dir}"/>
+    <mkdir dir="${ivy.lib.dir}"/>
+
+  </target>
+
+  <target name="ivy-init"
+    depends="ivy-properties">
+    <typedef uri="antlib:org.apache.ivy.ant" onerror="fail" loaderRef="ivyLoader">
+      <classpath>
+        <pathelement location="${ivy.jar}"/>
+      </classpath>
+    </typedef>
+    <ivy:configure file="${ivysettings.xml}" override="false"/>
+  </target>
+
+
+  <target name="ivy-resolve" depends="ivy-init">
+    <ivy:resolve/>
+  </target>
+
+
+  <!--This is quite traumatic, as it cleans the cache which can take a while to download
+again, but it does ensure your machine isn't building with artifacts that no longer exist-->
+  <target name="ivy-cleancache" depends="ivy-init"
+    description="clean the ivy cache completely">
+    <ivy:cleancache/>
+  </target>
+
+
+  <target name="ivy-retrieve" depends="ivy-resolve"
+    description="retrieve all dependent artifacts through Ivy">
+    <property name="ivy.artifact.retrieve.pattern"
+      value="[conf]/[artifact]-[revision].[ext]"/>
+    <property name="ivy.retrieve.path"
+      value="${ivy.lib.dir}/${ivy.artifact.retrieve.pattern}"/>
+    <ivy:retrieve pattern="${ivy.retrieve.path}" sync="true"/>
+  </target>
+
+  <target name="ivy-report" depends="ivy-resolve">
+    <ivy:report todir="${ivy.reports.dir}"/>
+    <echo>published Ivy report to
+      ${ivy.reports.dir}
+    </echo>
+  </target>
+
+  <!--publish master artifacts-->
+  <target name="ivy-publish" depends="packaged">
+    <ivy:publish resolver="local" pubrevision="${hmonitor.version}"
+      overwrite="true"
+      conf="master"
+      artifactspattern="${dist.lib.dir}/[artifact]-[revision].[ext]"/>
+  </target>
+
+
+  <!-- ========================================================== -->
+  <!-- classpath setup-->
+  <!-- ========================================================== -->
+
+  <target name="declare-classpaths"
+    depends="ivy-resolve">
+    <ivy:cachepath pathid="build.classpath" conf="build"/>
+    <ivy:cachepath pathid="compile.classpath" conf="compile"/>
+    <ivy:cachepath pathid="redist.classpath" conf="redist"/>
+    <ivy:cachepath pathid="ivy.test.classpath" conf="test"/>
+    <echo level="verbose">build.classpath=${toString:build.classpath}</echo>
+    <echo level="verbose">compile.classpath=${toString:compile.classpath}</echo>
+    <echo level="verbose">redist.classpath=${toString:redist.classpath}</echo>
+    <path id="exec.classpath">
+      <pathelement location="${target.jar}"/>
+      <path refid="ivy.test.classpath"/>
+    </path>
+    <echo level="verbose">exec.classpath=${toString:exec.classpath}</echo>
+    <path id="tests.compile.classpath">
+      <path refid="exec.classpath"/>
+    </path>
+    <path id="tests.run.classpath">
+      <pathelement location="${test.jar}"/>
+      <path refid="tests.compile.classpath"/>
+    </path>
+    <echo level="verbose">tests.run.classpath=${toString:tests.run.classpath}</echo>
+  </target>
+
+  <!-- ========================================================== -->
+  <!-- ========================================================== -->
+
+  <!--
+  Declare the groovy tasks if groovy is enabled
+  -->
+  <target name="groovy-tasks" depends="declare-classpaths">
+    <taskdef name="groovyc"
+      classname="org.codehaus.groovy.ant.Groovyc"
+      classpathref="build.classpath"/>
+
+    <taskdef name="groovydoc"
+      classname="org.codehaus.groovy.ant.Groovydoc"
+      classpathref="build.classpath"/>
+
+    <!-- define a new groovyc task with new default options -->
+    <presetdef name="ext-groovyc">
+      <groovyc
+        fork="true"
+        memoryMaximumSize="512M">
+        <javac
+          debug="true"
+          nowarn="true"
+          deprecation="false"
+          source="${javac.version}"
+          target="${javac.version}"
+          >
+        </javac>
+      </groovyc>
+    </presetdef>
+  </target>
+
+  <!-- ========================================================== -->
+  <!-- ========================================================== -->
+
+
+  <target name="ready-to-compile"
+    depends="init,declare-classpaths,groovy-tasks">
+  </target>
+
+  <target name="compile" depends="ready-to-compile, groovy-tasks">
+    <ext-groovyc
+      classpathref="compile.classpath"
+      destdir="${build.classes.dir}">
+      <src>
+        <pathelement location="src/main/java"/>
+        <pathelement location="src/main/groovy"/>
+      </src>
+    </ext-groovyc>
+    <copy todir="${build.classes.dir}">
+      <fileset dir="src/main/resources" includes="**/*"/>
+      <fileset dir="src/main/python" includes="**/*"/>
+    </copy>
+  </target>
+
+  <target name="ready-to-compile-tests"
+    depends="packaged"
+    />
+
+
+  <target name="packaged" depends="compile"
+    description="create the file">
+    <jar
+      compress="true"
+      duplicate="preserve"
+      destfile="${target.jar}"
+      basedir="${build.classes.dir}"
+      includes="**/*"
+      >
+    </jar>
+    <echo level="verbose">created package ${target.jar}</echo>
+  </target>
+
+
+  <target name="compile-tests" depends="ready-to-compile-tests">
+    <ext-groovyc
+      classpathref="exec.classpath"
+      destdir="${build.test.classes.dir}">
+      <src>
+        <pathelement location="src/test/java"/>
+        <pathelement location="src/test/groovy"/>
+      </src>
+    </ext-groovyc>
+    <copy todir="${build.test.classes.dir}">
+      <fileset dir="src/test/resources" includes="**/*"/>
+    </copy>
+  </target>
+
+  <target name="package-tests" depends="compile-tests">
+    <jar destfile="${test.jar}"
+      basedir="${build.test.classes.dir}"
+      includes="**/*"/>
+  </target>
+
+  <target name="ready-to-test" depends="package-tests, init-tests"/>
+
+  <!--
+  Init the tests by loading in the target configuration.
+  This will fail if the target dir or file is not found. 
+  -->
+  <target name="load-target-configuration" depends="init">
+    <property name="test.propfile"
+      location="${target.conf.dir}/${test.server}.properties"/>
+    <loadproperties srcfile="${test.propfile}"/>
+  </target>
+
+  <target name="init-tests" depends="load-target-configuration">
+    <property name="test.propfile"
+      location="${target.conf.dir}${test.server}.properties"/>
+    <loadproperties srcfile="${test.propfile}"/>
+  </target>
+
+  <target name="test" depends="junit, junit-report"/>
+
+  <target name="systest" depends="systest-junit, junit-report"/>
+
+  <target name="junit" depends="ready-to-test">
+    <ext-junit
+      errorProperty="system.test.failed"
+      failureProperty="system.test.failed"
+      includeAntRuntime="true"
+      >
+      <classpath refid="tests.run.classpath"/>
+      <sysproperty key="test.classes.dir"
+        value="${build.test.classes.dir}"/>
+      <batchtest todir="${build.test.data.dir}" if="testcase">
+        <fileset dir="${build.test.classes.dir}" includes="**/${testcase}.class"/>
+      </batchtest>
+      <batchtest todir="${build.test.data.dir}" unless="testcase">
+        <fileset dir="${build.test.classes.dir}">
+          <include name="**/*Test.class"/>
+          <exclude name="**/remote/**/*Test.class"/>
+          <exclude name="**/functional/**/*Test.class"/>
+        </fileset>
+      </batchtest>
+    </ext-junit>
+  </target>
+
+
+  <target name="systest-junit" depends="ready-to-test">
+    <ext-junit
+      errorProperty="system.test.failed"
+      failureProperty="system.test.failed"
+      includeAntRuntime="true"
+      timeout="${junit.systest.timeout}"
+      >
+      <classpath refid="tests.run.classpath"/>
+      <sysproperty key="test.classes.dir"
+        value="${build.test.classes.dir}"/>
+      <batchtest todir="${build.test.data.dir}" if="testcase">
+        <fileset dir="${build.test.classes.dir}" includes="**/${testcase}.class"/>
+      </batchtest>
+      <batchtest todir="${build.test.data.dir}" unless="testcase">
+        <fileset dir="${build.test.classes.dir}">
+          <include name="**/remote/**/*Test.class"/>
+          <include name="**/functional/**/*Test.class"/>
+        </fileset>
+      </batchtest>
+    </ext-junit>
+  </target>
+
+  <target name="junit-report" depends="init">
+    <ext-test-report
+      data="${build.test.data.dir}"
+      reports="${build.test.reports.dir}"
+      failed="system.test.failed"
+      />
+    <echo>Test Succeeded: results in
+      ${build.test.reports.dir}
+    </echo>
+  </target>
+
+  <target name="junit-report2" depends="init">
+    <junitreport todir="${build.test.data.dir}">
+      <fileset dir="${build.test.data.dir}">
+        <include name="TEST-*.xml"/>
+      </fileset>
+      <report format="frames" todir="${build.test.reports.dir}"/>
+    </junitreport>
+    <echo>Test data in
+      ${build.test.reports.dir}
+    </echo>
+  </target>
+
+
+  <!-- ========================================================== -->
+  <!-- cleanup target -->
+  <!-- This MUST work even if clean has already been run; test -->
+  <!-- changes with ant clean clean -->
+  <!-- ========================================================== -->
+
+  <target name="clean" description="clean up build and dist"
+    depends="init">
+    <delete dir="${build.dir}"/>
+    <delete dir="${dist.dir}"/>
+    <delete dir="build"/>
+  </target>
+
+
+  <!-- ========================================================== -->
+  <!-- execution points-->
+  <!-- ========================================================== -->
+
+  <target name="ham" depends="packaged,load-target-configuration">
+    <fail unless="test.ham.configuration">
+      set test.ham.configuration to the target configuration
+    </fail>
+    <echo>Using configuration:
+      ${test.ham.configuration}
+    </echo>
+    <fail>
+      <condition>
+        <not>
+          <available file="${test.ham.configuration}"/>
+        </not>
+      </condition>
+      File not found ${test.ham.configuration}
+    </fail>
+    <java classpathref="exec.classpath"
+      fork="true"
+      failonerror="true"
+      classname="org.apache.ambari.servicemonitor.clients.gui.Ham">
+      <arg value="-conf"/>
+      <arg file="${test.ham.configuration}"/>
+    </java>
+  </target>
+
+
+  <!-- copy the dependencies -and move the hadoop core 
+  artifacts to target/core for a consistent layout to the RPMs-->
+  <target name="copy-dependencies" depends="ivy-retrieve,packaged">
+    <mkdir dir="${target.core.dir}"/>
+    <copy todir="${target.lib.dir}">
+      <fileset dir="${ivy.lib.dir}/redist" includes="*.jar"/>
+    </copy>
+
+    <move todir="${target.extras.dir}">
+      <fileset dir="${target.lib.dir}" includes="groovy-all-*.jar"/>
+    </move>
+  </target>
+
+  <!-- ========================================================== -->
+  <!-- Doc -->
+  <!-- ========================================================== -->
+
+  <target name="doc" depends="html, javadoc"/>
+
+  <target name="html" depends="init">
+    <property name="configuration.xsl" location="doc/configuration.xsl"/>
+    <newdir name="build.doc.html.dir" location="${build.doc.dir}/html"/>
+    <xslt style="${configuration.xsl}" destdir="${build.doc.html.dir}"
+      basedir="conf" includes="*.xml">
+    </xslt>
+  </target>
+
+  <target name="javadoc" depends="init-javadoc,compile">
+    <ext-javadoc
+      packagenames="${javadoc.packages}"
+      sourcepath="src/main/java:src/main/groovy"
+      destdir="${build.doc.javadoc.dir}"
+      />
+  </target>
+
+
+  <!--set up javadoc-->
+  <target name="init-javadoc" depends="groovy-tasks">
+    <newdir name="build.doc.javadoc.dir" location="${build.doc.dir}/javadoc"/>
+
+    <property name="javadoc.access" value="protected"/>
+    <property name="javadoc.author" value="false"/>
+    <property name="javadoc.version" value="true"/>
+    <property name="javadoc.use" value="true"/>
+    <property name="javadoc.windowtitle" value="HMonitor"/>
+    <property name="javadoc.packages" value="org.apache.chaos.*,org.apache.ambari.servicemonitor.*"/>
+    <property name="javadoc.package.name" value="Hadoop HA Monitoring"/>
+    <property name="javadoc.package.title" value="${javadoc.package.name}"/>
+    <property name="javadoc.package.title" value="${javadoc.package.name}"/>
+    <property name="javadoc.header" value="${javadoc.package.name} ${project.version}"/>
+    <property name="javadoc.footer" value="${javadoc.header}"/>
+    <!--packagenames="${javadoc.packagenames}"-->
+    <presetdef name="ext-javadoc">
+      <groovydoc
+        author="${javadoc.author}"
+        use="${javadoc.use}"
+        windowtitle="${javadoc.windowtitle}"
+        header="${javadoc.header}"
+        footer="${javadoc.footer}"
+        doctitle="${javadoc.package.name}"
+        >
+      </groovydoc>
+    </presetdef>
+
+  </target>
+
+
+  <!-- ========================================================== -->
+  <!-- Native code binding-->
+  <!-- ========================================================== -->
+
+
+  <target name="javah" depends="init,compile"
+    description="generate the C header file from the compiled Java source">
+    <javah destdir="${generated.c.dir}"
+      force="yes"
+      verbose="true"
+      classpath="${compiled.java.dir}">
+      <class name="org.apache.ambari.servicemonitor.reporting.vsphere.VMGuestApi"/>
+    </javah>
+  </target>
+
+  <!-- $GCC  -o libVMGuestAppMonitorNative.so -m64 -fpic -shared -I$guest.app.sdk/include -I$JAVA_HOME/include -I$JAVA_HOME/include/linux VMGuestAppMonitor.c $guest.app.sdk/lib64/libappmonitorlib.so -lc
+  
+  -->
+  <target name="gcc" depends="init,javah"
+    description="compile and link the C source">
+    <echo>
+
+      java.include.dir=${java.include.dir}
+      java.include.linux.dir=${java.include.linux.dir}
+      guest.app.sdk=${guest.app.sdk}
+      libappmonitorlib.so=${libappmonitorlib.so}
+    </echo>
+    <fail unless="java.include.dir"/>
+    <fail unless="java.include.linux.dir"/>
+    <fail unless="guest.app.sdk">
+      The property guest.app.sdk pointing to the vSphere Guest Application SDK is not set.
+    </fail>
+    <exec executable="gcc" failonerror="true">
+      <arg value="-o"/>
+      <arg value="${target.lib.file}"/>
+      <arg value="${gcc.mode}"/>
+      <arg value="-fpic"/>
+      <arg value="-shared"/>
+      <arg value="-I${guest.app.sdk}/include"/>
+      <arg value="-I${java.include.dir}"/>
+      <arg value="-I${java.include.linux.dir}"/>
+      <arg value="${c.source.file}"/>
+      <arg value="${libappmonitorlib.so}"/>
+      <arg value="-lc"/>
+    </exec>
+    <echo>
+      Generated: ${target.lib.file}
+    </echo>
+    <copy file="${target.lib.file}" todir="${build.dir}"/>
+    <copy file="${target.lib.file}" todir="lib/lib64"/>
+  </target>
+
+  <!--
+  create the initial tar
+  
+  -->
+  <target name="tar" depends="init, copy-dependencies" description="create the first tar">
+    <property name="tar.dir" location="${build.dir}/tar"/>
+    <mkdir dir="${tar.dir}"/>
+    <property name="tar.file" value="hmonitor.tar"/>
+    <checksum file="${scm.lib.file}" property="scm.lib.checksum"/>
+
+    <property name="tar.path" location="${tar.dir}/${tar.file}"/>
+    <delete file="${tar.path}"/>
+    <expandingcopy todir="target/scripts">
+      <fileset dir="src/main/scripts/run" includes="*.sh"/>
+    </expandingcopy>
+    <property name="config.xml" value="vm-namenode.xml"/>
+    <property name="hmonitor.jar" location="target/hmonitor.jar"/>
+    <copy file="target/hmonitor-${hmonitor.version}.jar"
+      tofile="${hmonitor.jar}"/>
+
+    <tar destfile="${tar.path}">
+      <tarfileset dir="target" includes="hmonitor.jar"/>
+      <tarfileset dir="target" includes="lib/*.jar"/>
+      <tarfileset dir="target" includes="core/*.jar"/>
+      <tarfileset dir="target" includes="extras/*.jar"/>
+      <tarfileset dir="lib/lib64/" includes="*.so"/>
+      <!-- scripts-->
+      <tarfileset dir="target/scripts" includes="*.sh" filemode="755"/>
+      <tarfileset dir="src/main/scripts/chaos" includes="*.sh" filemode="755"/>
+
+      <!--conf files -->
+      <tarfileset dir="conf" includes="*.xml">
+        <include name="template.xml"/>
+        <include name="vm-namenode.xml"/>
+        <include name="logmonitor.xml"/>
+        <include name="bulk-job-submission.xml"/>
+      </tarfileset>
+      <tarfileset dir="${log4j.properties.dir}"
+        includes="log4j.properties"/>
+
+    </tar>
+    <gzip src="${tar.path}" destfile="${tar.path}.gz"/>
+
+    <property name="untar.dir" location="target/untar"/>
+    <delete dir="${untar.dir}" includes="*"/>
+    <mkdir dir="${untar.dir}"/>
+    <!--<untar src="${tar.path}" dest="${untar.dir}"/>-->
+    <exec failonerror="true" command="tar" dir="${untar.dir}">
+      <arg value="-xvf"/>
+      <arg file="${tar.path}"/>
+    </exec>
+    <property name="untar.lib.file" location="${untar.dir}/${lib.filename}"/>
+    <checksum file="${untar.lib.file}" property="untar.lib.checksum"/>
+
+    <echo level="debug">
+      SCM checksum = ${scm.lib.checksum}
+      Tar checksum = ${untar.lib.checksum}
+    </echo>
+  </target>
+
+  <target name="untar" depends="tar"/>
+
+
+  <!--
+  this is here because the initial distro of the source was a JIRA patch
+  -->
+  <target name="jira-zip" depends="init"
+    description="package a source/src zip for the ambari JIRA AMBARI-504">
+    <property name="jira.zip" location="target/ambari-504.zip"/>
+    <zip file="${jira.zip}">
+      <zipfileset prefix="hmonitor" dir="." includes="src/**/*"/>
+      <zipfileset prefix="hmonitor" dir="." includes="ivy/**/*"/>
+      <zipfileset prefix="hmonitor" dir="." includes="conf/*"/>
+      <zipfileset prefix="hmonitor" dir="." includes="*.xml,libraries.properties"/>
+    </zip>
+    <echo>
+      file ${jira.zip} is ready for upload to
+      https://issues.apache.org/jira/browse/AMBARI-504
+    </echo>
+  </target>
+
+
+  <target name="dropbox" depends="dropbox-tar, dropbox-rpm, dropbox-rpm2"
+    description="Publish the vsphere and redhat RPMs to dropbox"/>
+
+  <target name="dropbox-tar" depends="tar"
+    description="copy to dropbox if 'dropbox.dist.dir' is set"
+    if="dropbox.dist.dir">
+    <copy todir="${dropbox.dist.dir}" file="${tar.path}"/>
+  </target>
+
+  <target name="dropbox-rpm" depends="rpm-tar"
+    description="copy the RPM to dropbox if 'dropbox.dist.dir' is set"
+    if="dropbox.dist.dir">
+    <delete dir="${dropbox.dist.dir}/rpm"/>
+    <copy todir="${dropbox.dist.dir}/rpm" file="${rpms.vsphere.tar.gz}"/>
+  </target>
+
+  <target name="dropbox-rpm2" depends="rpm-tar"
+    description="copy the RedHat RPMs to dropbox if 'dropbox.dist2.dir' is set"
+    if="dropbox.dist2.dir">
+    <delete dir="${dropbox.dist2.dir}/rpm"/>
+    <copy todir="${dropbox.dist2.dir}/rpm" file="${rpms.tar.gz}"/>
+  </target>
+
+  <target name="rpms" depends="rpm"/>
+
+
+  <!-- get ready to exec -->
+  <target name="ready-to-exec" depends="untar">
+    <path id="exec.classpath">
+
+    </path>
+  </target>
+
+  <target name="init-rpm"
+    depends="init">
+
+    <property name="rpm.metadata.dir" location="src/main/scripts/rpm"/>
+    <loadproperties srcFile="${rpm.metadata.dir}/rpm.properties"/>
+
+
+    <!-- information about the Hadoop installation. This is needed to set up the symbolic links correctly -->
+    <property name="hdp.install.dir" value="/usr/lib/hadoop"/>
+    <property name="hdp.lib.dir" value="${hdp.install.dir}/lib"/>
+
+    <property name="hdp.hadoop.jar" value="${hdp.install.dir}/hadoop-core.jar"/>
+
+
+    <newdir name="build.rpm.dir" location="${build.dir}/rpm"/>
+
+    <newdir name="rpm.root.dir" location="${build.rpm.dir}/root/"/>
+
+    <newdir name="rpm.image.dir"
+      location="${build.rpm.dir}/rpm"/>
+    <newdir name="rpm.SOURCES"
+      location="${rpm.image.dir}/SOURCES"/>
+    <newdir name="rpm.SRPMS"
+      location="${rpm.image.dir}/SRPMS"/>
+    <newdir name="rpm.SPECS"
+      location="${rpm.image.dir}/SPECS"/>
+    <newdir name="rpm.BUILD"
+      location="${rpm.image.dir}/BUILD"/>
+    <newdir name="rpm.RPMS"
+      location="${rpm.image.dir}/RPMS"/>
+    <newdir name="rpm.x86_64"
+      location="${rpm.RPMS}/x86_64"/>
+    <newdir name="core.install.dir"
+      location="${rpm.root.dir}${rpm.install.dir}"/>
+
+    <property name="hmonitor.rpmfiles.tar"
+      location="${rpm.SOURCES}/hmonitor-${hmonitor.version}.tar"/>
+    <property name="hmonitor.rpmfiles.tar.gz"
+      location="${hmonitor.rpmfiles.tar}.gz"/>
+    <property name="rpm.suffix"
+      value="${hmonitor.version}-${rpm.release.version}.x86_64.rpm"/>
+    <property name="target.rpm.shortname"
+      value="hmonitor-${rpm.suffix}"/>
+
+    <property name="target.rpm"
+      location="${rpm.x86_64}/${target.rpm.shortname}"/>
+    <property name="hmonitor-test.rpm"
+      location="${rpm.x86_64}/hmonitor-test-${rpm.suffix}"/>
+    <property name="hmonitor-vsphere-monitoring.rpm"
+      location="${rpm.x86_64}/hmonitor-vsphere-monitoring-${rpm.suffix}"/>
+    <property name="hmonitor-vsphere-jobtracker-daemon.rpm"
+      location="${rpm.x86_64}/hmonitor-vsphere-jobtracker-daemon-${rpm.suffix}"/>
+    <property name="hmonitor-vsphere-namenode-daemon.rpm"
+      location="${rpm.x86_64}/hmonitor-vsphere-namenode-daemon-${rpm.suffix}"/>
+    <property name="hmonitor-resource-agent.rpm"
+      location="${rpm.x86_64}/hmonitor-resource-agent-${rpm.suffix}"/>
+
+    <property name="rpms.tar" location="${build.rpm.dir}/hmonitor-linux-ha-rpms-${project.version}-${rpm.release.version}"/>
+    <property name="rpms.tar.gz" location="${rpms.tar}.gz"/>
+    <property name="rpms.vsphere.tar"
+      location="${build.rpm.dir}/hmonitor-vsphere-rpms-${project.version}-${rpm.release.version}"/>
+    <property name="rpms.vsphere.tar.gz" location="${rpms.vsphere.tar}.gz"/>
+  </target>
+
+
+  <target name="copy-rpm-specs" depends="init-rpm">
+    <expandingcopy todir="${rpm.SPECS}">
+      <fileset dir="${rpm.metadata.dir}" includes="hmonitor.spec"/>
+    </expandingcopy>
+  </target>
+
+
+  <!--
+  this is a a wierd target as it patches the macros file rpmmacros with the
+  location of the output. With ant-contrib's try/finally tasks we could
+  copy and restore this -provided only one build per user was live.
+  As it is, unless you set the rpm.skip.macros property, your
+  ~/.rpmmacros file gets trashed by Ant.
+
+  Notes
+   * the specfile attr is the name of the spec file under SPECS; it is not a full path to the file
+   * - is not allowed in the version number
+  -->
+  <target name="rpmmacros" unless="rpm.skip.macros" depends="init-rpm">
+    <echo file="${user.home}/.rpmmacros">
+      #GENERATED by rpmmacros task in ${basedir}
+      %_topdir ${build.rpm.dir}
+    </echo>
+    <macrodef name="lna">
+      <attribute name="artifact"/>
+      <attribute name="version"/>
+      <sequential>
+        <fail>
+          <condition>
+            <not>
+              <available file="${rpm.lib.dir}/@{artifact}-@{version}.jar"/>
+            </not>
+          </condition>
+          Missing link artifact: ${rpm.lib.dir}/@{artifact}-@{version}.jar
+        </fail>
+        <exec executable="ln" failonerror="true">
+          <arg value="-sf"/>
+          <arg value="${rpm.install.dir}/lib/@{artifact}-@{version}.jar"/>
+          <arg value="${rpm.link.dir}/@{artifact}.jar"/>
+        </exec>
+      </sequential>
+    </macrodef>
+
+    <macrodef name="ln">
+      <attribute name="link"/>
+      <attribute name="target"/>
+      <sequential>
+        <exec executable="ln" failonerror="true">
+          <arg value="-sf"/>
+          <arg value="@{target}"/>
+          <arg value="@{link}"/>
+        </exec>
+      </sequential>
+    </macrodef>
+  </target>
+
+
+  <target name="vsphere-lib-validate" depends="init" unless="vsphere.lib.fake">
+    <!-- bond to the real lib lib -->
+    <fail>
+      <condition>
+        <not>
+          <available file="${libappmonitorlib.so}"/>
+        </not>
+      </condition>
+      vSphere guest application monitoring library not found:
+      "${libappmonitorlib.so}"
+      To avoid this problem by generating an empty file, set the property
+      vsphere.lib.fake
+    </fail>
+    <property name="redist.libappmonitorlib.so" location="${libappmonitorlib.so}"/>
+  </target>
+
+
+  <target name="vsphere-lib-fake" depends="vsphere-lib-validate" if="vsphere.lib.fake">
+    <!-- generate fake lib -->
+    <echo level="warn">Generating a stub vsphere monitoring lib -the -vsphere RPMs are not valid</echo>
+    <property name="redist.libappmonitorlib.so" location="target/lib/vspherefake.so"/>
+    <touch file="${redist.libappmonitorlib.so}"/>
+  </target>
+
+  <!-- do the preparations to creat a real or fake vsphere lib-->
+  <target name="vsphere-lib-prepare" depends="vsphere-lib-fake">
+  </target>
+
+  <target name="copy-hmonitor-artifacts" depends="init-rpm,rpmmacros,untar,vsphere-lib-prepare">
+    <newdir name="hadoop.d" location="${rpm.root.dir}/usr/lib/hadoop"/>
+    <newdir name="monitor.d" location="${hadoop.d}/monitor"/>
+    <echo>
+      Local Monitor directory is ${monitor.d}
+    </echo>
+    <copy file="${target.jar}" tofile="${monitor.d}/hmonitor.jar"/>
+    <copy file="${scm.lib.file}" todir="${monitor.d}"/>
+
+    <!-- shared binary-->
+    <newdir name="lib64.d" location="${rpm.root.dir}/usr/lib64"/>
+    <copy file="${redist.libappmonitorlib.so}" todir="${lib64.d}"/>
+
+    <!-- extra JARs-->
+    <newdir name="extras.d" location="${monitor.d}/extras"/>
+    <copy file="${untar.dir}/extras/groovy-all-${groovy.version}.jar"
+      todir="${extras.d}"/>
+
+    <!-- monitor configurations -->
+    <copy todir="${monitor.d}" file="conf/bulk-job-submission.xml"/>
+    <copy todir="${monitor.d}" file="conf/vm-namenode.xml"/>
+    <copy todir="${monitor.d}" file="conf/vm-jobtracker.xml"/>
+
+    <!--logging-->
+    <copy todir="${monitor.d}" file="${log4j.properties}"/>
+
+    <!--documentation-->
+    <copy todir="${monitor.d}" file="doc/commands.txt"/>
+
+
+    <!-- scripts-->
+    <newdir name="init.d" location="${rpm.root.dir}/etc/init.d"/>
+    <property name="rpm.scripts.dir" location="src/main/scripts"/>
+    <!--/etc/**/*-->
+    <copy todir="${rpm.root.dir}">
+      <fileset dir="${rpm.scripts.dir}" includes="etc/**/*"/>
+    </copy>
+    <chmod perm="755" file="${rpm.root.dir}/etc/init.d/hmonitor-namenode-monitor"/>
+    <chmod perm="755" file="${rpm.root.dir}/etc/init.d/hmonitor-jobtracker-monitor"/>
+
+    <!-- Linux HA cluster -->
+    <copy todir="${rpm.root.dir}">
+      <fileset dir="${rpm.scripts.dir}" includes="usr/share/**/*"/>
+    </copy>
+    <chmod perm="755" file="${rpm.root.dir}/usr/share/cluster/hadoop.sh"/>
+
+
+    <!-- hmonitor's own scripts-->
+
+    <copy todir="${monitor.d}">
+      <fileset dir="${rpm.scripts.dir}/run" includes="*.sh"/>
+    </copy>
+    <chmod perm="755" dir="${monitor.d}" includes="*.sh"/>
+
+    <!-- set up the symlink to the hadoop core libs-->
+    <ln
+      link="${monitor.d}/core"
+      target="/usr/lib/hadoop/"
+      />
+    <ln
+      link="${monitor.d}/lib"
+      target="/usr/lib/hadoop/lib"
+      />
+
+    <!-- set up the symlink to our native library-->
+
+    <newdir name="hadoop.native.d" location="${hadoop.d}/lib/native/Linux-amd64-64"/>
+
+    <ln
+      link="${hadoop.native.d}/libVMGuestAppMonitorNative.so"
+      target="/usr/lib/hadoop/monitor/libVMGuestAppMonitorNative.so"
+      />
+
+  </target>
+
+
+  <!--
+  Use the native tar to pick up permissions
+  -->
+  <target name="ready-to-rpm"
+    depends="create-laid-out-tar">
+  </target>
+
+
+  <!--
+  Use the native tar to pick up permissions
+  -->
+  <target name="create-laid-out-tar"
+    depends="copy-hmonitor-artifacts,copy-rpm-specs">
+    <exec executable="tar" failonerror="true"
+      dir="${build.rpm.dir}/root/">
+      <arg value="cvvf"/>
+      <arg file="${hmonitor.rpmfiles.tar}"/>
+      <arg value="etc"/>
+      <arg value="usr"/>
+    </exec>
+    <!-- now we have a sanity check -->
+    <loadresource property="daemon-script">
+      <tarentry archive="${hmonitor.rpmfiles.tar}"
+        name="etc/init.d/hmonitor-namenode-monitor"/>
+    </loadresource>
+    <gzip src="${hmonitor.rpmfiles.tar}"
+      destfile="${hmonitor.rpmfiles.tar.gz}"/>
+  </target>
+
+
+  <target name="exec-rpm" depends="ready-to-rpm">
+    <rpm
+      specFile="hmonitor.spec"
+      topDir="${rpm.image.dir}"
+      cleanBuildDir="true"
+      failOnError="true"/>
+  </target>
+
+
+  <target name="rpm" depends="copy-dependencies, exec-rpm"
+    description="build the project and create the RPM">
+
+  </target>
+
+
+  <target name="rpm-tar" depends="rpm"
+    description="Create and tar the RPMs">
+
+    <!-- Redhat set-->
+    <tar destfile="${rpms.tar}">
+      <fileset file="${target.rpm}"/>
+      <fileset file="${hmonitor-resource-agent.rpm}"/>
+      <!-- scripts-->
+      <tarfileset file="src/main/scripts/rpm/uninstall-rpms.sh" filemode="755"/>
+    </tar>
+    <!--
+          <fileset file="${hmonitor-test.rpm}"/>
+
+    -->
+    <gzip src="${rpms.tar}" destfile="${rpms.tar.gz}"/>
+
+    <tar destfile="${rpms.vsphere.tar}">
+      <fileset file="${target.rpm}"/>
+      <fileset file="${hmonitor-vsphere-monitoring.rpm}"/>
+      <fileset file="${hmonitor-vsphere-jobtracker-daemon.rpm}"/>
+      <fileset file="${hmonitor-vsphere-namenode-daemon.rpm}"/>
+      <!-- scripts-->
+      <tarfileset file="src/main/scripts/rpm/uninstall-vsphere-rpms.sh" filemode="755"/>
+    </tar>
+    <gzip src="${rpms.vsphere.tar}" destfile="${rpms.vsphere.tar.gz}"/>
+  </target>
+
+  <!--
+  ==========================================================================
+    This section deals with remote push-out of the RPMs onto a target
+    server so that it can be tested
+  ==========================================================================
+  
+  -->
+
+  <!-- targets below derived from ch07 examples of AiA -->
+  <target name="check-scp">
+    <fail>
+      SCP support not found; the scp task needs
+      1. ant-jsch.jar
+      2. jsch.jar from
+      http://www.jcraft.com/jsch/
+      <condition>
+        <not>
+          <typefound name="scp"/>
+        </not>
+      </condition>
+    </fail>
+  </target>
+
+
+  <target name="rpm-remote-init" depends="check-scp,init,init-rpm,load-target-configuration">
+    <fail unless="rpm.server">
+      Failed.
+      Set the "rpm.server" property to the name of a server
+      whose connection settings are in a property file under
+      src/test/targets/.
+    </fail>
+    <property name="rpm.propfile"
+      location="src/test/targets/${rpm.server}.properties"/>
+    <loadproperties srcfile="${rpm.propfile}"/>
+    <property name="daemon" value="/etc/init.d/hmonitor-namenode-monitor"/>
+
+    <echo>SCP target is ${rpm.server} at ${rpm.ssh.server}</echo>
+    <property name="ssh.command.timeout" value="60000"/>
+    <property name="ssh.rpm.command.timeout" value="600000"/>
+    <presetdef name="rpmssh">
+      <sshexec host="${rpm.ssh.server}"
+        username="${rpm.ssh.user}"
+        passphrase="${rpm.ssh.passphrase}"
+        trust="${rpm.ssh.trust}"
+        keyfile="${rpm.ssh.keyfile}"
+        timeout="${ssh.command.timeout}"
+        />
+    </presetdef>
+    <presetdef name="rootssh">
+      <rpmssh
+        username="root"
+        timeout="${ssh.rpm.command.timeout}"
+        />
+    </presetdef>
+    <presetdef name="pause">
+      <sleep milliseconds="5000"/>
+    </presetdef>
+    <presetdef name="rpm-scp">
+      <scp
+        passphrase="${rpm.ssh.passphrase}"
+        keyfile="${rpm.ssh.keyfile}"
+        trust="${rpm.ssh.trust}"
+        sftp="true"
+        verbose="true">
+      </scp>
+    </presetdef>
+    <!-- Validate RPM results by looking at the output string
+this is an ugly hack to deal with the fact that rpm -qf doesn't change 
+its status code if a file is unowned -->
+    <macrodef name="validate-rpm-result">
+      <attribute name="result"/>
+      <sequential>
+        <echo>
+          @{result}
+        </echo>
+        <fail>
+          <condition>
+            <contains
+              string="@{result}"
+              substring="does not exist"/>
+          </condition>
+          The rpm contains files belonging to an unknown user.
+        </fail>
+      </sequential>
+    </macrodef>
+
+    <property name="rpm.upload.dir" location=""/>
+
+    <!--override this to -vv for extra diagnostics -->
+    <property name="rpm.verbosity" value="-v"/>
+
+    <!--this is is  path that needs tuning for root and other platforms-->
+    <property name="rpm.ssh.user.home.dir"
+      value="/home/${rpm.ssh.user}"/>
+    <!--this is the full rpm destination-->
+    <property name="rpm.full.ssh.dir"
+      value="/${rpm.ssh.user.home.dir}/${rpm.ssh.dir}"/>
+    <macrodef name="rpm-uninstall">
+      <attribute name="rpms"/>
+      <attribute name="failonerror" default="true"/>
+      <sequential>
+        <rootssh
+          command="rpm --erase --nodeps --allmatches ${rpm.verbosity} @{rpms}"
+          failonerror="@{failonerror}"/>
+      </sequential>
+    </macrodef>
+
+    <!--list of rpms-->
+
+    <property name="rpms.list"
+      value="hmonitor hmonitor-test hmonitor-vsphere-namenode-daemon hmonitor-vsphere-monitoring hmonitor-vsphere-jobtracker-daemon hmonitor-resource-agent"/>
+
+
+    <echo>
+      remote server is ${rpm.ssh.server}
+      remote directory is ${rpm.full.ssh.dir}
+      rpms to install:
+      ${rpms.list}
+    </echo>
+
+  </target>
+
+
+  <target name="rpm-full-install" depends="rpm,rpm-remote-uninstall,rpm-remote-install-test"
+    description="build and re-install the RPMs, check it afterwards."/>
+
+  <target name="assert-target-rpm-ready" depends="rpm-remote-init">
+    <fail>
+      <condition>
+        <not>
+          <available file="${target.rpm}"/>
+        </not>
+      </condition>
+      The RPM ${target.rpm} does not exist
+    </fail>
+  </target>
+
+  <target name="rpm-upload" depends="rpm-remote-init,assert-target-rpm-ready">
+
+    <rpmssh command="rm -rf ${rpm.full.ssh.dir}/" failonerror="false"/>
+    <rpmssh command="mkdir -p ${rpm.full.ssh.dir}"/>
+    <property name="rpm.ssh.path"
+      value="${rpm.ssh.user}@${rpm.ssh.server}:${rpm.full.ssh.dir}"/>
+    <rpm-scp remoteToDir="${rpm.ssh.path}">
+      <fileset dir="${rpm.x86_64}" includes="*.rpm"/>
+    </rpm-scp>
+  </target>
+
+  <target name="rpm-remote-install" depends="rpm-upload"
+    description="install the RPMs to the remote server">
+    <rootssh
+      command="cd ${rpm.full.ssh.dir}; rpm --upgrade --force ${rpm.verbosity} ${target.rpm.shortname} hmonitor-test-${rpm.suffix} hmonitor-vsphere-namenode-daemon-${rpm.suffix} hmonitor-vsphere-jobtracker-daemon-${rpm.suffix} hmonitor-vsphere-monitoring-${rpm.suffix} "
+      outputProperty="rpm.result.core"/>
+    <validate-rpm-result result="${rpm.result.core}"/>
+  </target>
+
+
+  <target name="rpm-remote-query" depends="rpm-remote-init">
+    <rootssh command="rpm -q ${rpms.list}" failonerror="true"/>
+  </target>
+
+  <target name="rpm-remote-uninstall" depends="rpm-remote-init"
+    description="A forced uninstall of the RPMs, no dependency checking">
+    <rpm-uninstall failonerror="false" rpms="${rpms.list}"/>
+    <!--<rootssh command="rpm - -erase ${rpm.verbosity} ${rpms.list}"/>-->
+  </target>
+
+
+  <target name="rpm-remote-install-test"
+    depends="rpm-remote-install,rpm-queries-test,rpm-remote-initd"
+    description="install, verify and test the RPMs to a remote target"/>
+
+
+  <target name="rpm-remote-initd-status"
+    depends="rpm-remote-init"
+    description="check that initd parses">
+    <rootssh command="${daemon} status"/>
+  </target>
+
+  <target name="rpm-remote-initd"
+    depends="rpm-remote-init"
+    description="check that initd parses">
+    <rootssh command="chkconfig --del hmonitor-jobtracker-monitor"/>
+    <rootssh command="${daemon} start"/>
+    <pause/>
+    <rootssh command="${daemon} status"/>
+    <pause/>
+    <rootssh command="${daemon} status"/>
+    <rootssh command="${daemon} stop"/>
+    <rootssh command="${daemon} stop"/>
+    <rootssh command="${daemon} stop"/>
+    <rootssh command="${daemon} restart"/>
+    <pause/>
+    <rootssh command="${daemon} status"/>
+    <rootssh command="${daemon} restart"/>
+    <pause/>
+    <rootssh command="${daemon} status"/>
+    <rootssh command="${daemon} stop"/>
+  </target>
+
+  <target name="rpm-queries-test" depends="rpm-remote-init"
+    description="check that files and directories belong to the RPMs">
+    <rootssh
+      failonerror="true"
+      command="rpm -qf ${rpm.install.dir} ;
+rpm -qf ${rpm.install.dir}/;
+rpm -qf ${rpm.install.dir}/hmonitor.jar ;
+rpm -qf ${rpm.install.dir}/extras/groovy-all-${groovy.version}.jar;
+rpm -qf ${rpm.install.dir}/ham.sh  ;
+rpm -qf ${rpm.install.dir}/libVMGuestAppMonitorNative.so ;
+rpm -qf /usr/lib/hadoop/lib/native/Linux-amd64-64/libVMGuestAppMonitorNative.so;
+rpm -qf /usr/lib64/libappmonitorlib.so;
+rpm -qf ${rpm.install.dir}/template.xml;
+rpm -qf ${rpm.install.dir}/exec-monitor.sh;
+rpm -qf ${rpm.install.dir}/vm-namenode.xml;
+rpm -qf ${rpm.install.dir}/vsphere-ha-namenode-monitor.sh;
+rpm -qf /etc/init.d/${rpm.daemon.name};
+rpm -qf ${rpm.install.dir}/vsphere-ha-jobtracker-monitor.sh;
+rpm -qf ${rpm.install.dir}/vm-jobtracker.xml;
+rpm -qf /etc/init.d/${rpm.jtdaemon.name};
+"
+      outputProperty="rpm.queries.results"/>
+    <!--${secureLibs}"-->
+
+    <fail>
+      <condition>
+        <or>
+          <contains string="${rpm.queries.results}"
+            substring="is not owned by any package"/>
+        </or>
+      </condition>
+      One of the directories/files in the RPM is not declared as being owned by any RPM.
+      This file/directory will not be managed correctly, or have the correct permissions
+      on a hardened linux.
+      ${rpm.queries.results}
+    </fail>
+    <fail>
+      <condition>
+        <or>
+          <contains string="${rpm.queries.results}"
+            substring="No such file or directory"/>
+        </or>
+      </condition>
+      One of the directories/files looked for is not in the RPM.
+      There's a difference between expectations and what has been installed.
+      ${rpm.queries.results}
+    </fail>
+  </target>
+
+
+  <!--
+  ==========================================================================
+    This section deals with remote push-out of the RPMs onto a
+    RHEL HA system, including pushing out the target-specific
+    configuration files and shell scripts to multiple hosts.
+  ==========================================================================
+  
+  -->
+  <!--Init the RPM RHEL logic-->
+  <target name="rpm-rhel-init" depends="rpm-remote-init">
+    <fail unless="rpm.clusterconf">No property rpm.clusterconf set</fail>
+    <property name="rpm.clusterconf.file"
+      location="${rpm.clusterconf}"/>
+  </target>
+
+
+  <target name="rpm-install-rhel1" depends="rpm-upload,rpm-rhel-init"
+    description="install the RPMs to the RHEL1 server">
+    <rootssh
+      command="cd ${rpm.full.ssh.dir}; rpm --upgrade --force ${rpm.verbosity} ${target.rpm.shortname} hmonitor-test-${rpm.suffix} hmonitor-resource-agent-${rpm.suffix} "
+      outputProperty="rpm.result.core"/>
+    <rpm-scp remoteToDir="root@${rpm.ssh.server}:/etc/cluster"
+      localFile="${rpm.clusterconf.file}">
+    </rpm-scp>
+  </target>
+
+
+  <target name="rpm-install-rhel2" depends="rpm-rhel-init,assert-target-rpm-ready">
+    <rpmssh host="${rpm.ssh.server2}"
+      command="rm -rf ${rpm.full.ssh.dir}/"
+      failonerror="false"/>
+    <rpmssh
+      host="${rpm.ssh.server2}"
+      command="mkdir -p ${rpm.full.ssh.dir}"/>
+    <property name="rpm.ssh2.path"
+      value="${rpm.ssh.user}@${rpm.ssh.server2}:${rpm.full.ssh.dir}"/>
+    <rpm-scp
+      remoteToDir="${rpm.ssh2.path}">
+      <fileset dir="${rpm.x86_64}" includes="*.rpm"/>
+    </rpm-scp>
+    <rootssh
+      host="${rpm.ssh.server2}"
+      command="cd ${rpm.full.ssh.dir}; 
+      rpm --upgrade --force ${rpm.verbosity} ${target.rpm.shortname} hmonitor-test-${rpm.suffix} hmonitor-resource-agent-${rpm.suffix} "
+      outputProperty="rpm.result.core"/>
+    <rpm-scp remoteToFile="root@${rpm.ssh.server2}:/etc/cluster/updated-cluster.conf"
+      localFile="${rpm.clusterconf.file}">
+    </rpm-scp>
+
+  </target>
+
+  <target name="rpm-rhel1-script-test" depends="rpm-rhel-init">
+    <rpmssh
+      command='cd /usr/share/cluster; 
+      rm /tmp/md.xml;
+      ./hadoop.sh meta-data > /tmp/md.xml;
+      xmllint /tmp/md.xml;
+      export OCF_RESKEY_daemon="namenode";
+      export OCF_RESKEY_httpport="50070";
+      export OCF_RESKEY_ip="localhost";
+      export OCF_CHECK_LEVEL="50";
+      ./hadoop.sh validate-all;
+      ./hadoop.sh status;
+      
+      '/>
+  </target>
+
+  <target name="rpm-install-rhel"
+    depends="rpm-install-rhel1,rpm-install-rhel2,rpm-rhel1-script-test"
+    description="Install the RHEL RPMs on both master nodes"/>
+
+
+  <!-- this is for a faster turnaround of scripting; copies straight to the target machine, 
+       which must have the RPMs pre-installed. -->
+  <target name="scp-rhel-scripts" depends="rpm-rhel-init"
+    description="Copy the RHEL config and scripts direct to the target machine">
+
+    <rpm-scp remoteToDir="root@${rpm.ssh.server}:/usr/share/cluster"
+      localFile="src/main/scripts/usr/share/cluster/hadoop.sh">
+    </rpm-scp>
+
+    <rpm-scp remoteToDir="root@${rpm.ssh.server}:/usr/lib/hadoop/monitor"
+      localFile="src/main/scripts/run/haprobe.sh">
+    </rpm-scp>
+
+    <rpm-scp remoteToFile="root@${rpm.ssh.server}:/etc/cluster/updated-cluster.conf"
+      localFile="${rpm.clusterconf.file}">
+    </rpm-scp>
+  </target>
+
+</project>

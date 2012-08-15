@@ -1,0 +1,68 @@
+Cluster commands
+http://docs.redhat.com/docs/en-US/Red_Hat_Enterprise_Linux/5/html/Cluster_Administration/
+
+
+http://rhel58-dn/hdp/dashboard/ui/hdfs.html
+
+# update stats every 15s
+clustat -i 10
+
+ccs_tool - online updates to cluster.conf
+
+This propagates the update to all nodes in the cluster
+
+#to push an update from one host to all peers
+# redhat 5.x only
+
+ccs_tool update  /etc/cluster/updated-cluster.conf
+
+== RHEL6 ==
+
+ccs -h localhost -f /etc/cluster/updated-cluster.conf --setconf
+ 
+ --sync --activate
+ 
+ccs -h localhost --getschema
+
+
+
+preflight
+ccs_config_validate /etc/cluster/updated-cluster.conf
+
+Every cluster.conf update must have a higher config_version attribute in the root <cluster> 
+element.
+
+
+clusvcadm
+
+
+
+# start the namenode
+clusvcadm -e  NameNodeService
+
+# disable the namenode
+clusvcadm -d  NameNodeService
+
+# stop the namenode
+clusvcadm -s  NameNodeService
+
+# restart
+clusvcadm -R  NameNodeService
+
+
+
+Points
+1. the enable/disable actions last over reboots: as long as one machine in the cluster can come up
+  (and fence any others), an enabled service will be brought up in the cluster.
+  
+2. The name "NameNodeService" must match the name attribute of the <service> defining the namenode.
+ 
+
+#restart
+clusvcadm -R  namenode
+
+
+man clurgmgrd
+-describes cluster.conf
+
+

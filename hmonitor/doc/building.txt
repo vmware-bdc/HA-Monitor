@@ -1,0 +1,73 @@
+
+This project monitors the health of Hadoop processes and reports it state.
+
+# It generates a JAR artifact and shell scripts to invoke it -these scripts can run on Linux or OSX
+# It generates RPM files that contain the scripts and artifacts, and which install alongside
+a pre-existing Hadoop installation -from which this tool picks up the Hadoop artifacts.
+# it will only completely build and run on 64-bit Linux.
+
+
+Tools
+* JDK 6+
+* Ant 1.8.2+
+* rpmtools
+
+For native binaries:
+* gcc
+
+
+
+Building the JAR:
+
+  ant clean package
+
+ -creates the hmonitor JAR under target/
+
+Running the unit tests:
+
+  ant clean test
+
+Building the binaries, copying the artifacts, dependencies and scripts into a tar file for standalone use
+
+  ant clean tar
+
+ -creates the tar file and a .tar.gz version under target/tar
+
+
+Building the tar file, then untarring it so that its scripts can be executed directly
+
+ ant clean untar
+ 
+ -The artifacts and scripts will now be under target/untar
+ 
+ any of the scripts can be invoked here, e.g
+  target/untar/haprobe.sh -fs hdfs://localhost:8020
+
+
+
+
+== Building RPMS ==
+
+ ant rpm
+ 
+To increment the version counter
+
+1. edit src/main/scripts/rpm/rpm.properties
+2. increment the number in the property "rpm.release.counter"
+3. do a clean build of the RPMs
+
+== Distributing to Dropbox ==
+
+The build file can deliver the files to dropbox
+
+* create a dropbox account
+* mount the drive somewhere on the Linux filesystem
+
+in hmonitor/build.properties  (create this if needed), add entries pointing to the locations
+
+dropbox.dist.dir=/Users/stevel/Dropbox/hmonitor
+
+
+then:
+
+ ant dropbox-rpm    //builds the RPMs and copies them over to ${dropbox.dist.dir}

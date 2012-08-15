@@ -1,0 +1,138 @@
+<?xml version="1.0" ?>
+<?xml-stylesheet type="text/xsl" href="http://ivyrep.jayasoft.org/ivy-doc.xsl"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<ivy-module version="1.0">
+  <info organisation="org.apache.ambari" module="hmonitor">
+    <license name="Apache"/>
+    <ivyauthor name="Apache" url="http://hadoop.apache.com"/>
+    <description>
+      Service availability monitoring for Hadoop
+    </description>
+  </info>
+  <configurations defaultconfmapping="default">
+    <conf name="default" extends="master,redist"/>
+    <conf name="build" visibility="private"
+      description="artifacts needed to build the application"/>
+    <conf name="compile"
+      extends="redist"
+      description="artifacts needed to compile the application"/>
+    <conf name="test" extends="compile,default"
+      description="the classpath needed to run tests"/>
+    <conf name="master"
+      description="contains the artifact but no dependencies"/>
+    <conf name="redist"
+      description="external dependencies to redistribute"/>
+  </configurations>
+
+  <publications>
+    <!--get the artifact from our module name-->
+    <artifact conf="master"/>
+  </publications>
+  <dependencies>
+
+
+    <dependency org="org.apache.hadoop"
+      name="hadoop-core"
+      rev="${hadoop.version}"
+      conf="redist->default">
+      <exclude org="org.apache.ant"/>
+      <exclude org="ant"/>
+    </dependency>
+    <dependency org="org.apache.hadoop"
+      name="hadoop-tools"
+      rev="${hadoop.version}"
+      conf="redist->default"/>
+    <dependency org="org.apache.hadoop"
+      name="hadoop-test"
+      rev="${hadoop.version}"
+      conf="redist->default"/>
+    <dependency org="org.apache.hadoop"
+      name="hadoop-examples"
+      rev="${hadoop.version}"
+      conf="redist->default"/>
+
+
+    <dependency org="junit"
+      name="junit"
+      rev="${junit.version}"
+      conf="test->default"/>
+
+    <dependency org="com.jcraft" name="jsch"
+      rev="${jsch.version}"
+      conf="redist->default"/>
+
+
+    <dependency org="log4j" name="log4j"
+      rev="${log4j.version}"
+      conf="redist->default"/>
+
+    <dependency
+      org="org.mortbay.jetty"
+      name="jetty"
+      rev="${jetty.version}" conf="redist->default"/>
+
+    <dependency
+      org="org.mortbay.jetty"
+      name="jetty-util"
+      rev="${jetty.version}" conf="redist->default"/>
+
+    <dependency
+      org="asm"
+      name="asm"
+      rev="${asm.version}" conf="redist->default"/>
+
+    <dependency
+      org="com.sun.jersey"
+      name="jersey-core"
+      rev="${jersey-core.version}" conf="redist->default"/>
+
+    <dependency
+      org="com.sun.jersey"
+      name="jersey-json"
+      rev="${jersey-json.version}" conf="redist->default"/>
+
+    <dependency
+      org="com.sun.jersey"
+      name="jersey-server"
+      rev="${jersey-server.version}" conf="redist->default"/>
+
+    <dependency
+      org="tomcat"
+      name="jasper-runtime"
+      rev="${jsp-api.version}" conf="redist->default"/>
+
+    <dependency
+      org="tomcat"
+      name="jasper-compiler"
+      rev="${jsp-api.version}" conf="redist->default"/>
+
+
+    <dependency org="org.codehaus.groovy" name="groovy-all"
+      rev="${groovy.version}"
+      conf="redist,build->default"/>
+
+    <dependency org="commons-io" name="commons-io"
+      rev="${commons-io.version}"
+      conf="redist->default"/>
+
+    <!--<dependency org="org.apache.hbase" name="hbase" rev="0.92.1"/>-->
+
+
+  </dependencies>
+</ivy-module>
