@@ -1008,8 +1008,9 @@ again, but it does ensure your machine isn't building with artifacts that no lon
 
     <!-- monitor configurations -->
     <copy todir="${monitor.d}" file="conf/bulk-job-submission.xml"/>
-    <copy todir="${monitor.d}" file="conf/vm-namenode.xml"/>
+    <copy todir="${monitor.d}" file="conf/template.xml"/>
     <copy todir="${monitor.d}" file="conf/vm-jobtracker.xml"/>
+    <copy todir="${monitor.d}" file="conf/vm-namenode.xml"/>
 
     <!--logging-->
     <copy todir="${monitor.d}" file="${log4j.properties}"/>
