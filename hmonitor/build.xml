@@ -56,9 +56,16 @@
     * ../project.properties: an optional properties file read next. This is for some
     shared project settings outside the repo
 
-    Things you must configure
-    * A GSDK
+    Things you must configure in ./build.properties or ../project.properties
+    
+    
+   
+    To build the native library (Linux x64 only; build on RHEL5.x for RHEL5 and 6 executables)
+    Or to create valid RPMs for vSphere monitoring
+     guest.app.sdk=location-to-a-vsphere-guest-application-sdk
 
+    To fake the vsphere library (and so have invalid RPMs)
+    vsphere.lib.fake=true
   </description>
 
 
@@ -90,7 +97,7 @@
       </sequential>
     </macrodef>
 
-    <property name="guest.app.sdk" location="../GuestAppSDK"/>
+   
     <!--This is the filename of the monitor file from vsphere-->
     <property name="libappmonitorlib.so" location="${guest.app.sdk}/lib64/libappmonitorlib.so"/>
     <property name="repository.dir" location="../repository"/>
@@ -112,11 +119,11 @@
     <newdir name="build.cc.dir" location="target/c"/>
     <!-- this is the filname of our generated JNI artifact-->
     <property name="lib.filename" value="libVMGuestAppMonitorNative.so"/>
+    <property name="lib.so" location="lib/lib64/${lib.filename}"/>
     <newdir name="target.lib.dir" location="${build.dir}/lib/"/>
     <newdir name="target.core.dir" location="${build.dir}/core/"/>
     <newdir name="target.extras.dir" location="${build.dir}/extras/"/>
     <property name="target.lib.file" location="${target.lib.dir}/${lib.filename}"/>
-    <property name="scm.lib.file" location="lib/lib64/${lib.filename}"/>
     <newdir name="test.reports.dir" location="${build.test.dir}/reports"/>
     <newdir name="test.work.dir" location="${build.test.dir}/work"/>
     <newdir name="dist.dir" location="dist"/>
@@ -706,17 +713,20 @@ again, but it does ensure your machine isn't building with artifacts that no lon
     </echo>
     <copy file="${target.lib.file}" todir="${build.dir}"/>
     <copy file="${target.lib.file}" todir="lib/lib64"/>
+    <exec executable="nm">
+      <arg file="${lib.so}" />
+    </exec>
   </target>
 
   <!--
   create the initial tar
   
   -->
-  <target name="tar" depends="init, copy-dependencies" description="create the first tar">
+  <target name="tar" depends="init, copy-dependencies, vsphere-lib-prepare" description="create the first tar">
     <property name="tar.dir" location="${build.dir}/tar"/>
     <mkdir dir="${tar.dir}"/>
     <property name="tar.file" value="hmonitor.tar"/>
-    <checksum file="${scm.lib.file}" property="scm.lib.checksum"/>
+    <checksum file="${lib.so}" property="scm.lib.checksum"/>
 
     <property name="tar.path" location="${tar.dir}/${tar.file}"/>
     <delete file="${tar.path}"/>
@@ -734,6 +744,9 @@ again, but it does ensure your machine isn't building with artifacts that no lon
       <tarfileset dir="target" includes="core/*.jar"/>
       <tarfileset dir="target" includes="extras/*.jar"/>
       <tarfileset dir="lib/lib64/" includes="*.so"/>
+      <tarfileset file="${lib.so}"/>
+      
+      
       <!-- scripts-->
       <tarfileset dir="target/scripts" includes="*.sh" filemode="755"/>
       <tarfileset dir="src/main/scripts/chaos" includes="*.sh" filemode="755"/>
@@ -969,7 +982,7 @@ again, but it does ensure your machine isn't building with artifacts that no lon
     <touch file="${redist.libappmonitorlib.so}"/>
   </target>
 
-  <!-- do the preparations to creat a real or fake vsphere lib-->
+  <!-- do the preparations to create a real or fake vsphere lib-->
   <target name="vsphere-lib-prepare" depends="vsphere-lib-fake">
   </target>
 
@@ -980,7 +993,9 @@ again, but it does ensure your machine isn't building with artifacts that no lon
       Local Monitor directory is ${monitor.d}
     </echo>
     <copy file="${target.jar}" tofile="${monitor.d}/hmonitor.jar"/>
-    <copy file="${scm.lib.file}" todir="${monitor.d}"/>
+    
+    <!--Native Binary -->
+    <copy file="${lib.so}" todir="${monitor.d}"/>
 
     <!-- shared binary-->
     <newdir name="lib64.d" location="${rpm.root.dir}/usr/lib64"/>
