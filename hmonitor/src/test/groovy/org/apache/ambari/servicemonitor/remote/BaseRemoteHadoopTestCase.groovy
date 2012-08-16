@@ -37,10 +37,10 @@ class BaseRemoteHadoopTestCase extends BaseRemoteTestCase {
   public static final String NN_SERVER = TEST_REMOTE + "namenode.server"
   public static final String NN_SERVER_PORT = TEST_REMOTE + "namenode.port"
 
-  RemoteServer nnServer
-  RemoteServer jtServer
-  RemoteDaemonOperations namenode;
-  RemoteDaemonOperations jobtracker;
+  protected RemoteServer nnServer
+  protected RemoteServer jtServer
+  protected RemoteDaemonOperations namenode;
+  protected RemoteDaemonOperations jobtracker;
 
 
   @Override

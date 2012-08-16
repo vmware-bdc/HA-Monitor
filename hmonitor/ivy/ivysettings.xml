@@ -94,8 +94,6 @@
   </resolvers>
 
   <modules>
-    <!--Here's a list of things we build locally or pull from our own repository-->
-    <!--<module organisation="org.apache.hadoop" name=".*" resolver="internal"/>-->
 
   </modules>
 </ivysettings>

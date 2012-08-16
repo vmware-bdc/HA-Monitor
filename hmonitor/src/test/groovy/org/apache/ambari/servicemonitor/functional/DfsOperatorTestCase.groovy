@@ -23,6 +23,7 @@ import org.apache.hadoop.conf.Configuration
 
 class DfsOperatorTestCase extends BaseRemoteHadoopTestCase {
   public static final String TEST_REMOTE_NAMENODE_SERVER = "test.remote.namenode.server"
+  public static final String TEST_REMOTE_NAMENODE_SERVER2 = "test.remote.namenode.server2"
   public static final String TEST_REMOTE_VSPHERE_ENABLED = "test.remote.vsphere.enabled"
   public static final String TEST_REMOTE_REDHAT_ENABLED = "test.remote.redhat.enabled"
   public static final String TEST_REMOTE_NAMENODE_PIDFILE = "test.remote.namenode.pidfile"

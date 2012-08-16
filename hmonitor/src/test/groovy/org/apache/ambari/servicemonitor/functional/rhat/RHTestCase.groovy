@@ -18,8 +18,18 @@
 package org.apache.ambari.servicemonitor.functional.rhat
 
 import org.apache.ambari.servicemonitor.functional.DfsOperatorTestCase
+import org.apache.chaos.remote.RemoteServer
 
 class RHTestCase extends DfsOperatorTestCase {
+
+
+  RemoteServer nnserver2
+
+  @Override
+  protected void setUp() {
+    super.setUp()
+    nnserver2 = rootServer(requiredSysprop(TEST_REMOTE_NAMENODE_SERVER2))
+  }
 
   boolean enabled() {
     boolSysProp(TEST_REMOTE_REDHAT_ENABLED, false)

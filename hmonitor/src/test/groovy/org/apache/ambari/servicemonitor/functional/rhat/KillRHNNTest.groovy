@@ -26,11 +26,17 @@ class KillRHNNTest extends RHTestCase {
 
   public void testKillMinusNineNNService() throws Throwable {
 
-    if (enabled()) {
-      assertRestartsHDFS {
-        nnserver.kill(SIGKILL, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
-      }
+    if (!enabled()) {
+      return
     }
+    assertRestartsHDFS {
+      nnserver.kill(SIGKILL, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
+    }
+    assertRestartsHDFS {
+      nnserver2.kill(SIGKILL, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
+    }
+    
+    
   }
 
 

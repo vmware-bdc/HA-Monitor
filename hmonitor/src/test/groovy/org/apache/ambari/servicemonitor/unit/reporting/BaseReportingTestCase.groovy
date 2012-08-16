@@ -20,8 +20,9 @@ package org.apache.ambari.servicemonitor.unit.reporting
 import org.apache.ambari.servicemonitor.probes.MockProbe
 import org.apache.ambari.servicemonitor.remote.BaseRemoteHadoopTestCase
 import org.apache.ambari.servicemonitor.reporting.ReportingLoop
+import org.apache.chaos.remote.BaseRemoteTestCase
 
-class BaseReportingTestCase extends BaseRemoteHadoopTestCase {
+class BaseReportingTestCase extends BaseRemoteTestCase {
 
   /**
    * Create a basic reporting loop -without any reporter; that  must be pushed in later
