@@ -44,23 +44,6 @@
     />
   <resolvers>
 
-    <filesystem name="team">
-      ivys="true"
-      artifacts="true"
-      checkModified="true"
-      m2compatible="true" >
-      <artifact
-        pattern="${repository.dir}/${maven2.pattern.ext}"/>
-      <ivy pattern="${repository.dir}/${maven2.pattern}.xml"/>
-    </filesystem>
-    <filesystem name="team2">
-      artifacts="true"
-      usepom="true"
-      checkModified="true"
-      m2compatible="true" >
-      <artifact
-        pattern="${repository.dir}/${maven2.pattern.ext}"/>
-    </filesystem>
     <filesystem name="fs-m2"
       m2compatible="true">
       <artifact pattern="${m2.fs.repo.dir}/${maven2.pattern.ext}"/>
@@ -98,7 +81,6 @@
 
     <chain name="internal">
       <resolver ref="local"/>
-      <resolver ref="team"/>
     </chain>
 
     <chain name="default" dual="true">
