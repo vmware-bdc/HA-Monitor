@@ -26,6 +26,7 @@
 
 <project name="hmonitor"
   default="default"
+  basedir="."
   xmlns:ivy="antlib:org.apache.ivy.ant">
   <description>
     This file is the build and deploy script for the monitor code
@@ -62,34 +63,57 @@
    
     To build the native library (Linux x64 only; build on RHEL5.x for RHEL5 and 6 executables)
     Or to create valid RPMs for vSphere monitoring
-     guest.app.sdk=location-to-a-vsphere-guest-application-sdk
+      guest.app.sdk=location-to-a-vsphere-guest-application-sdk
+      jdk.home=directory containing a full JDK, particularly the directory include/linux
 
     To fake the vsphere library (and so have invalid RPMs)
     vsphere.lib.fake=true
   </description>
 
 
+  <!-- load in build properties; set the project dir first-->
+  <property name="hmonitor.project.dir" location="."/>
+  <property name="hmonitor.project.parent.dir" location=".."/>
   <property file="build.properties"/>
-  <property file="../project.properties"/>
+  
+  <!-- 
+  Now locate an (optional) project.properties file in the root dir of any availability 
+  project.
+  
+  This file is for a specific role: something that can be kept in a git repo that offers
+  cross-user configuration params after build.xml overrides. 
+  -->
+  <property name="availability.project.root.dir" location="${hmonitor.project.parent.dir}"/>
+  <property file="${availability.project.root.dir}/project.properties"/>
+  
+  <!--
+  Choose the version number of the project
+  -->
+  
   <property name="project.version" value="0.1"/>
   <property name="hmonitor.version" value="${project.version}"/>
+  
+  <!--
+  Read in the library version numbers
+   -->
   <property file="libraries.properties"/>
 
   <!-- default target -->
-  <target name="default" depends="tar"
+  <target name="default" depends="ready-to-rpm"
     description="default target creates the tar"/>
 
   <!-- here to catch command line cut and paste errors-->
   <target name="ant"/>
 
 
-  <target name="jenkins-rpm" depends="clean, rpm"
+  <!--Jenkins entry point-->
+  <target name="jenkins-rpm" depends="clean, gcc, rpm"
      description="RPM action for Jenkins builds"/>
   <target name="jenkins-test" depends="clean, test"
     description="Test target for Jenkins builds"/>
 
+  
   <target name="init">
-
     <macrodef name="newdir">
       <attribute name="name"/>
       <attribute name="location"/>
@@ -102,7 +126,6 @@
    
     <!--This is the filename of the monitor file from vsphere-->
     <property name="libappmonitorlib.so" location="${guest.app.sdk}/lib64/libappmonitorlib.so"/>
-    <property name="repository.dir" location="../repository"/>
     <property name="gcc.mode" value="-m64"/>
     <property name="jdk.home" location="${java.home}"/>
     <property name="java.include.dir" location="${jdk.home}/include"/>
@@ -802,8 +825,8 @@ again, but it does ensure your machine isn't building with artifacts that no lon
   </target>
 
 
-  <target name="dropbox" depends="dropbox-tar, dropbox-rpm, dropbox-rpm2"
-    description="Publish the vsphere and redhat RPMs to dropbox"/>
+  <target name="dropbox" depends="dropbox-tar, dropbox-rpm"
+    description="Publish the RPMs to dropbox"/>
 
   <target name="dropbox-tar" depends="tar"
     description="copy to dropbox if 'dropbox.dist.dir' is set"
