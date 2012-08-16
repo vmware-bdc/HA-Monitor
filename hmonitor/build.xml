@@ -994,8 +994,12 @@ again, but it does ensure your machine isn't building with artifacts that no lon
   <target name="vsphere-lib-fake" depends="vsphere-lib-validate" if="vsphere.lib.fake">
     <!-- generate fake lib -->
     <echo level="warn">Generating a stub vsphere monitoring lib -the -vsphere RPMs are not valid</echo>
-    <property name="redist.libappmonitorlib.so" location="target/lib/vspherefake.so"/>
-    <touch file="${redist.libappmonitorlib.so}"/>
+    <!-- create a fake .so-->
+    <property name="vspherefake.so" location="target/lib/vspherefake.so"/>
+    <touch file="${vspherefake.so}"/>
+    
+    <!-- then, iff nobody has set this reference up, point it to the fake one-->
+    <property name="redist.libappmonitorlib.so" location="${vspherefake.so}"/>
   </target>
 
   <!-- do the preparations to create a real or fake vsphere lib-->
@@ -1120,7 +1124,14 @@ again, but it does ensure your machine isn't building with artifacts that no lon
   </target>
 
 
-  <target name="rpm" depends="copy-dependencies, exec-rpm"
+  <!--Delete the VMs we don't want if they are fake-->
+  <target name="purge-stub-rpms" depends="exec-rpm" if="vsphere.lib.fake">
+    <delete file="${hmonitor-vsphere-monitoring.rpm}"/>
+    <delete file="${hmonitor-vsphere-jobtracker-daemon.rpm}"/>
+    <delete file="${hmonitor-vsphere-namenode-daemon.rpm}"/>
+  </target>
+  
+  <target name="rpm" depends="copy-dependencies, exec-rpm, purge-stub-rpms"
     description="build the project and create the RPM">
 
   </target>
