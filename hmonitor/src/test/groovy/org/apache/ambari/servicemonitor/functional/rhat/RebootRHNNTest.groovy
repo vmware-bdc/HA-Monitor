@@ -30,7 +30,7 @@ class RebootRHNNTest extends RHTestCase {
 
     if (enabled()) {
       assertRestartsHDFS {
-        nnserver.command("shutdown -h 0")
+        nnserver.command("shutdown -r 0")
       }
     }
   }
