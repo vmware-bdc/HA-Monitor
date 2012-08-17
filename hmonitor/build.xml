@@ -32,8 +32,6 @@
     This file is the build and deploy script for the monitor code
 
 
-    It is supported by Sanjay Radia at Hortonworks
-
     Deployment layout
     /usr/lib/hadoop/monitor -the monitor
     /conf -the configuration files (or symlink)
@@ -129,9 +127,6 @@
     <!--This is the filename of the monitor file from vsphere-->
     <property name="libappmonitorlib.so" location="${guest.app.sdk}/lib64/libappmonitorlib.so"/>
     <property name="gcc.mode" value="-m64"/>
-    <property name="jdk.home" location="${java.home}"/>
-    <property name="java.include.dir" location="${jdk.home}/../include"/>
-    <property name="java.include.linux.dir" location="${java.include.dir}/linux"/>
 
 
     <newdir name="generated.c.dir" location="src/main/c"/>
@@ -534,6 +529,7 @@ again, but it does ensure your machine isn't building with artifacts that no lon
   <target name="load-target-configuration" depends="init">
     <property name="test.propfile"
       location="${target.conf.dir}/${test.server}.properties"/>
+    <echo>Target file is ${test.propfile}</echo>
     <loadproperties srcfile="${test.propfile}"/>
     <echo>
       test.remote.vsphere.enabled=${test.remote.vsphere.enabled}
@@ -705,8 +701,44 @@ again, but it does ensure your machine isn't building with artifacts that no lon
   <!-- This needs gcc on the command line as well as the vSphere Guest Application SDK-->
   <!-- ========================================================== -->
 
+  <target name="init-jdk" depends="init">
+    <fail unless="jdk.home">
+      The property jdk.home must be set to the JDK
+    </fail>
 
-  <target name="javah" depends="init,compile"
+    <fail>
+      <condition>
+        <not>
+          <available file="${jdk.home}"/>
+        </not>
+      </condition>
+
+      Dir Not found: ${jdk.home}
+    </fail>
+
+    <property name="java.include.dir" location="${jdk.home}/include"/>
+    <fail>
+      <condition>
+        <not>
+          <available file="${java.include.dir}/jni.h"/>
+        </not>
+      </condition>
+
+      File Not found: ${java.include.dir}/jni.h
+    </fail>
+    <property name="java.include.linux.dir" location="${java.include.dir}/linux"/>
+    <fail>
+      <condition>
+        <not>
+          <available file="${java.include.linux.dir}"/>
+        </not>
+      </condition>
+
+      Dir Not found: ${java.include.linux.dir}
+    </fail>
+  </target>
+
+  <target name="javah" depends="init,init-jdk,compile"
     description="generate the C header file from the compiled Java source">
     <javah destdir="${generated.c.dir}"
       force="yes"
