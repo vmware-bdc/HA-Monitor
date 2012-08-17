@@ -32,11 +32,11 @@ class KillRHNNTest extends RHTestCase {
     assertRestartsHDFS {
       nnserver.kill(SIGKILL, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
     }
-    assertRestartsHDFS {
+/*    assertRestartsHDFS {
       nnserver2.kill(SIGKILL, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
     }
     
-    
+    */
   }
 
 
