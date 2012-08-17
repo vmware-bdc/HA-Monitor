@@ -535,6 +535,21 @@ again, but it does ensure your machine isn't building with artifacts that no lon
     <property name="test.propfile"
       location="${target.conf.dir}/${test.server}.properties"/>
     <loadproperties srcfile="${test.propfile}"/>
+    <echo>
+      test.remote.vsphere.enabled=${test.remote.vsphere.enabled}
+      test.remote.redhat.enabled=${test.remote.redhat.enabled}
+      test.remote.namenode.server=${test.remote.namenode.server}
+      test.remote.namenode.server=${test.remote.namenode.server}
+      test.remote.jobtracker.server=${test.remote.jobtracker.server}
+      test.remote.fs.default.name=${test.remote.fs.default.name}
+      test.remote.namenode.pidfile=${test.remote.namenode.pidfile}
+
+      test.remote.namenode.start.time=${test.remote.namenode.start.time}
+      test.remote.namenode.monitored.stop.time=${test.remote.namenode.monitored.stop.time}
+      test.ham.configuration=${test.ham.configuration}
+
+      test.remote.ssh.key=${test.remote.ssh.key}
+    </echo>
   </target>
 
 
@@ -892,7 +907,7 @@ again, but it does ensure your machine isn't building with artifacts that no lon
       location="${rpm.SOURCES}/hmonitor-${hmonitor.version}.tar"/>
     <property name="hmonitor.rpmfiles.tar.gz"
       location="${hmonitor.rpmfiles.tar}.gz"/>
-    
+
     <property name="rpm.release.version" value="1"/>
     <property name="rpm.suffix"
       value="${hmonitor.version}-${rpm.release.version}.x86_64.rpm"/>
