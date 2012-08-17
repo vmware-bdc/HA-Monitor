@@ -31,6 +31,9 @@
   <description>
     This file is the build and deploy script for the monitor code
 
+
+    It is supported by Sanjay Radia at Hortonworks
+
     Deployment layout
     /usr/lib/hadoop/monitor -the monitor
     /conf -the configuration files (or symlink)
