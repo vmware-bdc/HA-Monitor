@@ -92,7 +92,7 @@
   Choose the version number of the project
   -->
 
-  <property name="project.version" value="0.1"/>
+  <property name="project.version" value="0.1.0"/>
   <property name="hmonitor.version" value="${project.version}"/>
 
   <!--
@@ -892,6 +892,8 @@ again, but it does ensure your machine isn't building with artifacts that no lon
       location="${rpm.SOURCES}/hmonitor-${hmonitor.version}.tar"/>
     <property name="hmonitor.rpmfiles.tar.gz"
       location="${hmonitor.rpmfiles.tar}.gz"/>
+    
+    <property name="rpm.release.version" value="1"/>
     <property name="rpm.suffix"
       value="${hmonitor.version}-${rpm.release.version}.x86_64.rpm"/>
     <property name="target.rpm.shortname"

@@ -54,7 +54,7 @@
 Summary:        Hadoop Monitoring Framework
 Name:           hmonitor
 Version:        ${hmonitor.version}
-Release:        ${rpm.release.version}
+Release:        ${rpm.release.version}%{?dist}
 Group:          Applications/System
 License:        Apache
 URL:            http://hadoop.apache.org/
