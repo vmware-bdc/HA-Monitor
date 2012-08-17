@@ -29,8 +29,6 @@ class RebootRHNNTest extends RHTestCase {
   public void testKillMinusNineNNService() throws Throwable {
 
     if (enabled()) {
-      nnserver2 = rootServer(requiredSysprop(TEST_REMOTE_NAMENODE_SERVER2))
-
       assertRestartsHDFS {
         nnserver.command("shutdown -r 0")
       }

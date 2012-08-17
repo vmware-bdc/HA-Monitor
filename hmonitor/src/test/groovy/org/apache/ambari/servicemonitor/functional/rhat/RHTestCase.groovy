@@ -23,7 +23,7 @@ import org.apache.chaos.remote.RemoteServer
 class RHTestCase extends DfsOperatorTestCase {
 
 
-  RemoteServer nnserver2
+  protected RemoteServer nnserver2
 
   @Override
   protected void setUp() {

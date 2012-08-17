@@ -140,7 +140,8 @@ class RemoteServer implements UserInfo, UIKeyboardInteractive {
   List command(String command) {
     def session = connect()
     SshCommands cmds = new SshCommands(session)
-    cmds.command([command])
+    def (status, text) = cmds.command([command])
+    log.info("$status : $text")
   }
 
   /**
