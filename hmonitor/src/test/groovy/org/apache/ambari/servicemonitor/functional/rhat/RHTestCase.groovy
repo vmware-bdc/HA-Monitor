@@ -28,7 +28,10 @@ class RHTestCase extends DfsOperatorTestCase {
   @Override
   protected void setUp() {
     super.setUp()
-    nnserver2 = rootServer(requiredSysprop(TEST_REMOTE_NAMENODE_SERVER2))
+    if (enabled()) {
+      nnserver2 = rootServer(requiredSysprop(TEST_REMOTE_NAMENODE_SERVER2))
+    }
+
   }
 
   boolean enabled() {
