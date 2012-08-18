@@ -18,11 +18,12 @@
 package org.apache.ambari.servicemonitor.functional
 
 import org.apache.ambari.servicemonitor.remote.BaseRemoteHadoopTestCase
-import org.apache.chaos.remote.RemoteServer
 import org.apache.hadoop.conf.Configuration
+import groovy.util.logging.Commons
+
+@Commons
 
 class DfsOperatorTestCase extends BaseRemoteHadoopTestCase {
-  public static final String TEST_REMOTE_NAMENODE_SERVER = "test.remote.namenode.server"
   public static final String TEST_REMOTE_NAMENODE_SERVER2 = "test.remote.namenode.server2"
   public static final String TEST_REMOTE_VSPHERE_ENABLED = "test.remote.vsphere.enabled"
   public static final String TEST_REMOTE_REDHAT_ENABLED = "test.remote.redhat.enabled"
@@ -38,7 +39,6 @@ class DfsOperatorTestCase extends BaseRemoteHadoopTestCase {
   protected DfsOperator dfsOperator
 
 
-  protected RemoteServer nnserver
   protected int namenodeStartTime = NN_START_TIME
   protected int namenodeMonitoredStopTime = NN_MONITORED_STOP_TIME
 
@@ -46,7 +46,6 @@ class DfsOperatorTestCase extends BaseRemoteHadoopTestCase {
   protected void setUp() {
     super.setUp()
     bindSSHKey()
-    nnserver = rootServer(requiredSysprop(TEST_REMOTE_NAMENODE_SERVER))
     namenodeStartTime = intSysProp(TEST_REMOTE_NAMENODE_START_TIME, namenodeStartTime)
     namenodeMonitoredStopTime = intSysProp(TEST_REMOTE_NAMENODE_MONITORED_STOP_TIME, namenodeMonitoredStopTime)
   }
@@ -87,5 +86,15 @@ class DfsOperatorTestCase extends BaseRemoteHadoopTestCase {
     log.info("Back online: $dfsOperator")
   }
 
+  public boolean isEnabled() {
+    return true;
+  }
 
+  public boolean enabled() {
+    if (isEnabled()) {
+      return true
+    }
+    log.info("Skipping disabled test")
+    return false
+  }
 }

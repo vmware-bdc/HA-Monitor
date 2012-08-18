@@ -17,27 +17,20 @@
 
 package org.apache.ambari.servicemonitor.functional.rhat
 
-import org.apache.ambari.servicemonitor.functional.DfsOperatorTestCase
-import org.apache.chaos.remote.RemoteServer
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
 
-class RHTestCase extends DfsOperatorTestCase {
+class RHHangNNTest extends RHTestCase {
+  protected static final Log log = LogFactory.getLog(RHHangNNTest)
 
-  protected static final String SERVICE_GROUP_NAMENODE = "service:NameNodeService"
 
-
-  protected RemoteServer nnServer2
-
-  @Override
-  protected void setUp() {
-    super.setUp()
-    if (isEnabled()) {
-      nnServer2 = rootServer(requiredSysprop(TEST_REMOTE_NAMENODE_SERVER2))
+  public void testKillStopNNService() throws Throwable {
+    if (enabled()) {
+      assertRestartsHDFS {
+        nnServer.kill(SIGSTOP, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
+      }
     }
-
   }
 
-  boolean isEnabled() {
-    boolSysProp(TEST_REMOTE_REDHAT_ENABLED, false)
-  }
 
 }

@@ -17,10 +17,14 @@
 
 package org.apache.chaos.remote
 
+import junit.framework.TestCase
+import groovy.util.logging.Commons
+
 /**
  * Base class for remote tests
  */
-class BaseRemoteTestCase extends GroovyTestCase {
+@Commons
+class BaseRemoteTestCase extends TestCase {
   public static final String TEST_REMOTE = "test.remote."
   public static final String TEST_REMOTE_ENABLED = TEST_REMOTE + "enabled"
   public static final String TEST_REMOTE_SSH_KEY = TEST_REMOTE + "ssh.key"

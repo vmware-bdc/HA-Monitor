@@ -15,28 +15,27 @@
  * limitations under the License.
  */
 
+
+
 package org.apache.ambari.servicemonitor.functional.rhat
 
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
+import org.apache.chaos.remote.Clustat
 
-class KillRHNNTest extends RHTestCase {
-  protected static final Log log = LogFactory.getLog(KillRHNNTest)
+class RHClustatTest extends RHTestCase {
+  protected static final Log log = LogFactory.getLog(RHClustatTest)
 
 
-  public void testKillMinusNineNNService() throws Throwable {
+  public void testClustatShowsServiceOnHost1() throws Throwable {
 
     if (!enabled()) {
       return
     }
-    assertRestartsHDFS {
-      nnserver.kill(SIGKILL, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
-    }
-/*    assertRestartsHDFS {
-      nnserver2.kill(SIGKILL, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
-    }
-    
-    */
+    Clustat clustat = nnServer.clustat()
+    String host = clustat.hostRunningService(SERVICE_GROUP_NAMENODE)
+    assert nnServer.host == host
+
   }
 
 

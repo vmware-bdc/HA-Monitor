@@ -15,23 +15,22 @@
  * limitations under the License.
  */
 
-
-
 package org.apache.ambari.servicemonitor.functional.rhat
 
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 
-class RebootRHNNTest extends RHTestCase {
-  protected static final Log log = LogFactory.getLog(RebootRHNNTest)
+class RHKillNNTest extends RHTestCase {
+  protected static final Log log = LogFactory.getLog(RHKillNNTest)
 
 
   public void testKillMinusNineNNService() throws Throwable {
 
-    if (enabled()) {
-      assertRestartsHDFS {
-        nnserver.command(REBOOT)
-      }
+    if (!enabled()) {
+      return
+    }
+    assertRestartsHDFS {
+      nnServer.kill(SIGKILL, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
     }
   }
 

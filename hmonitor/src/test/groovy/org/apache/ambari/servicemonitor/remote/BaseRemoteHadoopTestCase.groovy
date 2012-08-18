@@ -41,8 +41,8 @@ class BaseRemoteHadoopTestCase extends BaseRemoteTestCase {
 
   protected RemoteServer nnServer
   protected RemoteServer jtServer
-  protected RemoteDaemonOperations namenode;
-  protected RemoteDaemonOperations jobtracker;
+  protected RemoteDaemonOperations namenodeActions;
+  protected RemoteDaemonOperations jobtrackerActions;
 
 
   @Override
@@ -51,8 +51,8 @@ class BaseRemoteHadoopTestCase extends BaseRemoteTestCase {
     bindSSHKey()
     nnServer = rootServer(requiredSysprop(NN_SERVER))
     jtServer = rootServer(requiredSysprop(JT_SERVER))
-    namenode = new RemoteDaemonOperations(nnServer, "namenode")
-    jobtracker = new RemoteDaemonOperations(jtServer, "jobtracker")
+    namenodeActions = new RemoteDaemonOperations(nnServer, "namenode")
+    jobtrackerActions = new RemoteDaemonOperations(jtServer, "jobtracker")
   }
 
   Configuration createBondedConfiguration() {

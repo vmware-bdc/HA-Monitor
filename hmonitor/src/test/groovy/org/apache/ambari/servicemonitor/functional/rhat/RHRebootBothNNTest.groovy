@@ -15,20 +15,48 @@
  * limitations under the License.
  */
 
+
+
+
+
 package org.apache.ambari.servicemonitor.functional.rhat
 
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
+import org.apache.chaos.remote.Clustat
 
-class HangRHNNTest extends RHTestCase {
-  protected static final Log log = LogFactory.getLog(HangRHNNTest)
+/**
+ * This test reboots each NN in turn, and verifies that the service moves from one to the other,
+ * rather than just hope that the fielsystem comes back fast.
+ */
+class RHRebootBothNNTest extends RHTestCase {
+  protected static final Log log = LogFactory.getLog(RHRebootBothNNTest)
 
 
-  public void testKillStopNNService() throws Throwable {
+  public void testRebootBothNamenodes() throws Throwable {
+    if (!enabled()) {return }
+    
     if (enabled()) {
+
+      nnServer.command("true")
+      nnServer2.command("true")
       assertRestartsHDFS {
-        nnserver.kill(SIGSTOP, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
+        nnServer.command(REBOOT)
       }
+
+      //here failover is expected
+      Clustat clustat = nnServer2.clustat()
+      assert nnServer2.host == clustat.hostRunningService(SERVICE_GROUP_NAMENODE)
+      
+      //give NN1 30s advantage in boot time
+      Thread.sleep(30000)
+      
+      assertRestartsHDFS {
+        nnServer2.command(REBOOT)
+      }
+      clustat = nnServer.clustat()
+      assert nnServer.host == clustat.hostRunningService(SERVICE_GROUP_NAMENODE)
+      nnServer2.waitForServerLive(30000)
     }
   }
 

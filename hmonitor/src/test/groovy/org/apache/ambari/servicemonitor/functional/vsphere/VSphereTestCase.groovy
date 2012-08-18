@@ -21,7 +21,7 @@ import org.apache.ambari.servicemonitor.functional.DfsOperatorTestCase
 
 class VSphereTestCase extends DfsOperatorTestCase {
 
-  boolean enabled() {
+  boolean isEnabled() {
     boolSysProp(TEST_REMOTE_VSPHERE_ENABLED, false)
   }
 

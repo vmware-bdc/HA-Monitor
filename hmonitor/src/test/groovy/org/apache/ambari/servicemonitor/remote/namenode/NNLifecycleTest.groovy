@@ -32,15 +32,15 @@ class NNLifecycleTest extends BaseRemoteHadoopTestCase {
   @Test
   public void testNamenodeStartStatusStop() throws Throwable {
     if (!remoteTestsEnabled) return
-    namenode.start()
-    namenode.status()
-    namenode.stop()
+    namenodeActions.start()
+    namenodeActions.status()
+    namenodeActions.stop()
   }
 
   @Test
   public void testNamenodeIsStarted() throws Throwable {
     if (!remoteTestsEnabled) return
-    namenode.start()
+    namenodeActions.start()
     Configuration conf = createBondedConfiguration()
     DistributedFileSystem dfs = DFSUtils.createUncachedDFS(conf)
     while (dfs.setSafeMode(FSConstants.SafeModeAction.SAFEMODE_GET)) {

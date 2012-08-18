@@ -23,13 +23,14 @@ import com.jcraft.jsch.Session
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 import org.junit.Test
+import groovy.util.logging.Commons
 
 /**
  *
  */
+@Commons
 class LocalhostSSHTest extends BaseRemoteTestCase {
 
-  static final Log log = LogFactory.getLog(LocalhostSSHTest)
   public static final int EXEC_TIMEOUT = 5000
 
   String username

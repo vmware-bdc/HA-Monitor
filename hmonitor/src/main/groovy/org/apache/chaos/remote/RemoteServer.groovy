@@ -122,7 +122,7 @@ class RemoteServer implements UserInfo, UIKeyboardInteractive {
    * @return a new session
    */
   Session connect() {
-    connect(jschInstance, host, port)
+    return connect(jschInstance, host, port)
   }
 
   /**
@@ -134,7 +134,7 @@ class RemoteServer implements UserInfo, UIKeyboardInteractive {
   List exec(List args) {
     def session = connect()
     SshCommands cmds = new SshCommands(session)
-    cmds.exec(args)
+    return cmds.exec(args)
   }
 
   List command(String command) {
@@ -142,6 +142,7 @@ class RemoteServer implements UserInfo, UIKeyboardInteractive {
     SshCommands cmds = new SshCommands(session)
     def (status, text) = cmds.command([command])
     log.info("$status : $text")
+    [status, text]
   }
 
   /**
@@ -153,4 +154,31 @@ class RemoteServer implements UserInfo, UIKeyboardInteractive {
   List kill(int signal, String pidFile) {
     return command("kill -$signal `cat $pidFile`");
   }
+
+  Clustat clustat() {
+    def (status, text) = command("clustat -x")
+    if (status!=0) {
+      throw new IOException("Clustat command failed [$status]: $text")
+    }
+    Clustat clustat = new Clustat(text)
+    return clustat
+  }
+  
+  void  waitForServerLive(int timeout) {
+    long endtime = System.currentTimeMillis()+ timeout
+    boolean live = false;
+    
+    while (!live && System.currentTimeMillis() < endtime) {
+      try {
+        command("true")
+        live =true
+        break
+      } catch (IOException ignored) {
+        Thread.sleep(1000)
+      }
+      
+    }
+    
+  }
+  
 }

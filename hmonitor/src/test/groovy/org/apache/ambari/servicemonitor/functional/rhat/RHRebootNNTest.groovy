@@ -15,29 +15,25 @@
  * limitations under the License.
  */
 
+
+
 package org.apache.ambari.servicemonitor.functional.rhat
 
-import org.apache.ambari.servicemonitor.functional.DfsOperatorTestCase
-import org.apache.chaos.remote.RemoteServer
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
 
-class RHTestCase extends DfsOperatorTestCase {
+class RHRebootNNTest extends RHTestCase {
+  protected static final Log log = LogFactory.getLog(RHRebootNNTest)
 
-  protected static final String SERVICE_GROUP_NAMENODE = "service:NameNodeService"
 
+  public void tesRebootNNService() throws Throwable {
 
-  protected RemoteServer nnServer2
-
-  @Override
-  protected void setUp() {
-    super.setUp()
-    if (isEnabled()) {
-      nnServer2 = rootServer(requiredSysprop(TEST_REMOTE_NAMENODE_SERVER2))
+    if (enabled()) {
+      assertRestartsHDFS {
+        nnServer.command(REBOOT)
+      }
     }
-
   }
 
-  boolean isEnabled() {
-    boolSysProp(TEST_REMOTE_REDHAT_ENABLED, false)
-  }
 
 }

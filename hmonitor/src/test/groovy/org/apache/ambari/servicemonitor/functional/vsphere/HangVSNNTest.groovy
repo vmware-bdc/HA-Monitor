@@ -27,7 +27,7 @@ class HangVSNNTest extends VSphereTestCase {
   public void testKillMinusNineNNService() throws Throwable {
     if (enabled()) {
       assertRestartsHDFS {
-        nnserver.kill(SIGSTOP, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
+        nnServer.kill(SIGSTOP, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
       }
     }
   }

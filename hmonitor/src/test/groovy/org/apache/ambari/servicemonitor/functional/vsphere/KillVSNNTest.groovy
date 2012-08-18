@@ -28,7 +28,7 @@ class KillVSNNTest extends VSphereTestCase {
 
     if (enabled()) {
       assertRestartsHDFS {
-        nnserver.kill(SIGKILL, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
+        nnServer.kill(SIGKILL, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
       }
     }
   }
