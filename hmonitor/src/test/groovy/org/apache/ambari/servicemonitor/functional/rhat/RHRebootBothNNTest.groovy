@@ -21,9 +21,9 @@
 
 package org.apache.ambari.servicemonitor.functional.rhat
 
+import org.apache.chaos.remote.Clustat
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
-import org.apache.chaos.remote.Clustat
 
 /**
  * This test reboots each NN in turn, and verifies that the service moves from one to the other,
@@ -35,29 +35,27 @@ class RHRebootBothNNTest extends RHTestCase {
 
   public void testRebootBothNamenodes() throws Throwable {
     if (!enabled()) {return }
-    
-    if (enabled()) {
 
-      nnServer.command("true")
-      nnServer2.command("true")
-      assertRestartsHDFS {
-        nnServer.command(REBOOT)
-      }
 
-      //here failover is expected
-      Clustat clustat = nnServer2.clustat()
-      assert nnServer2.host == clustat.hostRunningService(SERVICE_GROUP_NAMENODE)
-      
-      //give NN1 30s advantage in boot time
-      Thread.sleep(30000)
-      
-      assertRestartsHDFS {
-        nnServer2.command(REBOOT)
-      }
-      clustat = nnServer.clustat()
-      assert nnServer.host == clustat.hostRunningService(SERVICE_GROUP_NAMENODE)
-      nnServer2.waitForServerLive(30000)
+    nnServer.command("true")
+    nnServer2.command("true")
+    assertRestartsHDFS {
+      nnServer.command(REBOOT)
     }
+
+    //here failover is expected
+    Clustat clustat = nnServer2.clustat()
+    assert nnServer2.host == clustat.hostRunningService(SERVICE_GROUP_NAMENODE)
+
+    //give NN1 30s advantage in boot time
+    Thread.sleep(30000)
+
+    assertRestartsHDFS {
+      nnServer2.command(REBOOT)
+    }
+    clustat = nnServer.clustat()
+    assert nnServer.host == clustat.hostRunningService(SERVICE_GROUP_NAMENODE)
+    nnServer2.waitForServerLive(30000)
   }
 
 

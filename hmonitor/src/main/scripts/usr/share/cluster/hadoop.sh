@@ -114,7 +114,7 @@ metadata() {
       <content type="string"/>
     </parameter>
 
-    <parameter name="daemon" unique="1" required="1">
+    <parameter name="daemon" unique="0" required="1">
       <shortdesc lang="en">
         The hadoop daemon name to run
       </shortdesc>
@@ -133,7 +133,6 @@ metadata() {
       </longdesc>
       <content type="string"/>
     </parameter>
-
   
     <parameter name="pid" unique="0" required="0">
       <shortdesc lang="en">
@@ -148,7 +147,6 @@ metadata() {
       </longdesc>
       <content type="string"/>
     </parameter>
-    
        
     <parameter name="path" unique="0" required="0">
       <shortdesc lang="en">
@@ -196,12 +194,24 @@ metadata() {
       <content type="integer" default="60000"/>
     </parameter>    
     
+    <parameter name="waitfs" unique="0" required="0">
+      <shortdesc lang="en">
+        flag to indicate whether or not the filesystem needs to come up first
+      </shortdesc>
+      <longdesc lang="en">
+      Indicate that the HA monitor should wait until the fs is live before
+      declaring that the service is live
+      </longdesc>
+      <content type="boolean" default="false"/>
+    </parameter>    
+    
   </parameters>
 
   <actions>
   
-    <!-- includes time to replay edit log -->
-    <action name="start" timeout="4m"/>
+    <!-- start time doesnt provide a timeout hint as waitfs actions
+     may need to block startup for an extended period of time. -->
+    <action name="start" />
     <action name="stop" timeout="100s"/>
     <!-- includes shutdown time and edit log time -->
     <action name="recover" timeout="4m"/>
@@ -351,9 +361,10 @@ dfs_check() {
 }
 
 # Run a bootstrap check
+# this can include different probes and timeouts
 dfs_bootstrap_check() {
  
-  ocf_run "${HAPROBE}" --file ${OCF_RESKEY_path}  --pid ${OCF_RESKEY_pid} --url ${OCF_RESKEY_url} --timeout ${OCF_RESKEY_probetime} --boottimeout ${OCF_RESKEY_boottime}
+  ocf_run "${HAPROBE}" --file ${OCF_RESKEY_path}  --pid ${OCF_RESKEY_pid} --url ${OCF_RESKEY_url} --timeout ${OCF_RESKEY_probetime} --boottimeout ${OCF_RESKEY_boottime} --waitfs ${OCF_RESKEY_waitfs}
   if [ $? -ne 0 ]
   then
     ocf_log warn "Service ${OCF_RESKEY_daemon} is not booting according to checks: -file ${OCF_RESKEY_path}  --pid ${OCF_RESKEY_pid} --url ${OCF_RESKEY_url} "
@@ -374,15 +385,16 @@ pid_check() {
 
 # fill in the default values of a service
 fill_in_defaults() {
-  : ${OCF_RESKEY_pid="null"}
-  : ${OCF_RESKEY_path="/"}
-  : ${OCF_RESKEY_daemon="namenode"}
-  : ${OCF_RESKEY_ip="localhost"}
-  : ${OCF_RESKEY_httpport="50070"}
-  : ${OCF_RESKEY_probetime="120000"}
   : ${OCF_RESKEY_boottime="180000"}
+  : ${OCF_RESKEY_daemon="namenode"}
+  : ${OCF_RESKEY_httpport="50070"}
+  : ${OCF_RESKEY_ip="localhost"}
+  : ${OCF_RESKEY_path="/"}
+  : ${OCF_RESKEY_pid="null"}
+  : ${OCF_RESKEY_probetime="120000"}
   : ${OCF_RESKEY_stoptime="60000"}
   : ${OCF_RESKEY_url="http://localhost:50070/"}
+  : ${OCF_RESKEY_waitfs="false"}
 }
 
 dump_environment() {

@@ -24,13 +24,22 @@ class HangVSNNTest extends VSphereTestCase {
   protected static final Log log = LogFactory.getLog(HangVSNNTest)
 
 
-  public void testKillMinusNineNNService() throws Throwable {
+  public void testKillHungNNService() throws Throwable {
     if (enabled()) {
       assertRestartsHDFS {
         nnServer.kill(SIGSTOP, requiredSysprop(TEST_REMOTE_NAMENODE_PIDFILE));
       }
     }
   }
+/*
 
+public void testKillHungNN() {
+  assertRestartsHDFS {
+    nnServer.kill(19,
+                  "/var/run/hadoop/hadoop-hadoop-namenode.pid");
+  }
+}
+
+*/
 
 }

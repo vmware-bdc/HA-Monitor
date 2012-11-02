@@ -70,10 +70,6 @@ public class HaStatusCheck extends ToolPlusImpl implements ProbeReportHandler {
   public static final String WAITFS = "w";
   public static final String WAITFS_LONG = "waitfs";
 
-  private boolean shutdown = false;
-  private int shutdowntime = 0;
-
-
   public static void main(String[] args) {
 
     ToolRunnerPlus.runAndExit(new Configuration(),
@@ -90,7 +86,7 @@ public class HaStatusCheck extends ToolPlusImpl implements ProbeReportHandler {
     OptionHelper.addStringArgOpt(options, PATH, PATH_LONG, "path to query");
     OptionHelper.addStringArgOpt(options, PID, PID_LONG, "path to PID file; null means 'no pid'");
     OptionHelper.addStringArgOpt(options, URL, URL_LONG, "URL to block for");
-    options.addOption(WAITFS, WAITFS_LONG, false, "wait for the filesystem at boot before beginning probes");
+    OptionHelper.addBoolOpt(options, WAITFS, WAITFS_LONG, "wait for the filesystem at boot before beginning probes");
 
     return options;
   }
@@ -108,7 +104,7 @@ public class HaStatusCheck extends ToolPlusImpl implements ProbeReportHandler {
 
     String url = OptionHelper.getStringOption(commandLine, URL, null);
 
-    boolean waitFs = commandLine.hasOption(WAITFS);
+    boolean waitFs = OptionHelper.getBoolOption(commandLine,  WAITFS, false);
 
     if (pid == null && path == null && url == null) {
       //reject bad args
@@ -152,6 +148,8 @@ public class HaStatusCheck extends ToolPlusImpl implements ProbeReportHandler {
 
     //add a dependency on HDFS if supplied
     List<Probe> depends = null;
+   // waitfs
+    
     if (waitFs) {
       depends = new ArrayList<Probe>();
       depends.add(new DfsSafeModeProbe(new Configuration(conf), true));
