@@ -31,6 +31,7 @@ public class VSphereReporter extends Reporter {
   private static final Log LOG = LogFactory.getLog(VSphereReporter.class);
 
   private final VMGuestApi guestAPI = new VMGuestApi();
+  private boolean timeoutReported = false;
 
 
   public VSphereReporter() {
@@ -133,6 +134,8 @@ public class VSphereReporter extends Reporter {
     } else {
       //probe failed: do not send a heartbeat
     }
+    //reset the timeout monitor
+    timeoutReported = false;
     //now check monitoring is live
     verifyAndRenewMonitoring();
   }
@@ -141,7 +144,10 @@ public class VSphereReporter extends Reporter {
   public void probeTimedOut(ProbePhase currentPhase, Probe probe,
                             ProbeStatus lastStatus,
                             long currentTime) {
-    LOG.warn(getProbeTimeoutMessage(probe, lastStatus, currentTime) + " -- heartbeats suspended");
+    if (!timeoutReported) {
+      timeoutReported = true;
+      LOG.warn(getProbeTimeoutMessage(probe, lastStatus, currentTime) + " -- heartbeats suspended");
+    }
   }
 
   @Override
