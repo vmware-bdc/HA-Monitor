@@ -26,7 +26,7 @@ class RHRebootNNTest extends RHTestCase {
   protected static final Log log = LogFactory.getLog(RHRebootNNTest)
 
 
-  public void tesRebootNNService() throws Throwable {
+  public void testRebootNNService() throws Throwable {
 
     if (enabled()) {
       assertRestartsHDFS {
