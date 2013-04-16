@@ -27,11 +27,9 @@ import groovy.util.logging.Commons
 import org.apache.ambari.servicemonitor.MonitorKeys
 import org.apache.ambari.servicemonitor.clients.DFSSafeMode
 import org.apache.ambari.servicemonitor.clients.JTListQueue
-import org.apache.ambari.servicemonitor.clients.JTSafeMode
 import org.apache.ambari.servicemonitor.clients.LsDir
 import org.apache.ambari.servicemonitor.clients.Operation
 import org.apache.ambari.servicemonitor.probes.DfsSafeModeProbe
-import org.apache.ambari.servicemonitor.probes.JTSafeModeProbe
 import org.apache.ambari.servicemonitor.probes.SafeModeCheck
 import org.apache.ambari.servicemonitor.reporting.ProbePhase
 import org.apache.ambari.servicemonitor.reporting.ProbeStatus
@@ -116,7 +114,6 @@ public final class Ham extends ToolPlusImpl implements MonitorKeys {
   JLabel jtstatus
   JLabel jtLabel
   URI jtURI
-  JTSafeModeProbe jtSafeModeStatus
   SafeModeCheck dfsSafeModeProbe
   Action aJTToggleSafeMode
   Action aDFSToggleSafeMode
@@ -207,7 +204,6 @@ public final class Ham extends ToolPlusImpl implements MonitorKeys {
 
       def probes = []
 
-      JTSafeModeProbe jtSafeModeProbe = new JTSafeModeProbe(cloneConf())
 
       probes << jtSafeModeProbe
       jtSafeModeStatus = jtSafeModeProbe
@@ -604,18 +600,7 @@ public final class Ham extends ToolPlusImpl implements MonitorKeys {
     return startOperation(operationToRun)
   }
 
-  private synchronized boolean startJTToggleSafeMode() {
 
-    BaseClientRunner operationToRun = new BaseClientRunner(this,
-                                                           new JTSafeMode(),
-                                                           cloneConf(),
-                                                           "--sleeptime", "1000",
-                                                           "--successlimit", "1",
-                                                           "--faillimit", "1",
-                                                           "--attempts", "1",
-                                                           "--toggle")
-    return startOperation(operationToRun)
-  }
 
   private synchronized boolean startDFSToggleSafeMode() {
 

@@ -21,7 +21,7 @@ import org.apache.ambari.servicemonitor.reporting.ProbeStatus;
 import org.apache.ambari.servicemonitor.utils.DFSUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.hdfs.protocol.FSConstants;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 
 import java.io.IOException;
 import java.net.URI;
@@ -62,7 +62,7 @@ public class DfsSafeModeProbe extends Probe implements SafeModeCheck {
     ProbeStatus status = new ProbeStatus();
     try {
       DistributedFileSystem hdfs = DFSUtils.createUncachedDFS(conf);
-      inSafeMode = hdfs.setSafeMode(FSConstants.SafeModeAction.SAFEMODE_GET);
+      inSafeMode = hdfs.setSafeMode(HdfsConstants.SafeModeAction.SAFEMODE_GET);
       boolean live = !inSafeMode;
       if (inSafeMode) {
         if (ignoreSafeModeManuallyTriggered) {

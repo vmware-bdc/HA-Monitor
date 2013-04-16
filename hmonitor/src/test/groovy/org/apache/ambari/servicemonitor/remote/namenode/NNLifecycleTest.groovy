@@ -21,7 +21,7 @@ import org.apache.ambari.servicemonitor.remote.BaseRemoteHadoopTestCase
 import org.apache.ambari.servicemonitor.utils.DFSUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hdfs.DistributedFileSystem
-import org.apache.hadoop.hdfs.protocol.FSConstants
+import org.apache.hadoop.hdfs.protocol.HdfsConstants
 import org.junit.Test
 
 /**
@@ -43,7 +43,7 @@ class NNLifecycleTest extends BaseRemoteHadoopTestCase {
     namenodeActions.start()
     Configuration conf = createBondedConfiguration()
     DistributedFileSystem dfs = DFSUtils.createUncachedDFS(conf)
-    while (dfs.setSafeMode(FSConstants.SafeModeAction.SAFEMODE_GET)) {
+    while (dfs.setSafeMode(HdfsConstants.SafeModeAction.SAFEMODE_GET)) {
       sleep(500)
     }
     //here the system is out of safe mode, all is well

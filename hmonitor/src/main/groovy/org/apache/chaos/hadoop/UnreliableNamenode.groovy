@@ -24,7 +24,7 @@ import org.apache.hadoop.hdfs.protocol.Block
 import org.apache.hadoop.hdfs.protocol.ClientProtocol
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo
 import org.apache.hadoop.hdfs.protocol.DirectoryListing
-import org.apache.hadoop.hdfs.protocol.FSConstants
+import org.apache.hadoop.hdfs.protocol.HdfsConstants
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus
 import org.apache.hadoop.hdfs.protocol.LocatedBlock
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks
@@ -36,7 +36,7 @@ import org.apache.hadoop.security.token.Token
 /**
  * First attempt at stubbing out an unreliable namenode -but how to fit it into the wire?
  */
-class UnreliableNamenode implements ClientProtocol {
+abstract class UnreliableNamenode implements ClientProtocol {
 
   ClientProtocol clientDest;
 
@@ -151,7 +151,7 @@ class UnreliableNamenode implements ClientProtocol {
   }
 
   @Override
-  DatanodeInfo[] getDatanodeReport(FSConstants.DatanodeReportType type) {
+  DatanodeInfo[] getDatanodeReport(HdfsConstants.DatanodeReportType type) {
     return new DatanodeInfo[0]
   }
 
@@ -161,7 +161,7 @@ class UnreliableNamenode implements ClientProtocol {
   }
 
   @Override
-  boolean setSafeMode(FSConstants.SafeModeAction action) {
+  boolean setSafeMode(HdfsConstants.SafeModeAction action) {
     return false
   }
 
@@ -181,7 +181,7 @@ class UnreliableNamenode implements ClientProtocol {
   }
 
   @Override
-  UpgradeStatusReport distributedUpgradeProgress(FSConstants.UpgradeAction action) {
+  UpgradeStatusReport distributedUpgradeProgress(HdfsConstants.UpgradeAction action) {
     return null
   }
 

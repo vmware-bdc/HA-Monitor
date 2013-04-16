@@ -30,7 +30,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.hdfs.protocol.FSConstants;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 
 import java.io.IOException;
 
@@ -80,12 +80,12 @@ public class DFSSafeMode extends JobTrackerAction {
       result = cachedFS.getOrCreate();
       DistributedFileSystem hdfs = (DistributedFileSystem) result;
       if (toggle) {
-        boolean currentSM = hdfs.setSafeMode(FSConstants.SafeModeAction.SAFEMODE_GET);
+        boolean currentSM = hdfs.setSafeMode(HdfsConstants.SafeModeAction.SAFEMODE_GET);
         safeMode = !currentSM;
       }
       hdfs.setSafeMode(safeMode ?
-                         FSConstants.SafeModeAction.SAFEMODE_ENTER
-                         : FSConstants.SafeModeAction.SAFEMODE_LEAVE);
+                         HdfsConstants.SafeModeAction.SAFEMODE_ENTER
+                         : HdfsConstants.SafeModeAction.SAFEMODE_LEAVE);
       operation.success();
     } catch (ExitClientRunException e) {
       //propagate this up

@@ -71,14 +71,14 @@ public class JTClusterStatusProbe extends AbstractJTProbe {
       clusterOps.connect(addr, conf);
       clusterStatus = clusterOps.getClusterStatus(false);
       if (LOG.isDebugEnabled()) {
-        LOG.debug("JT state = " + clusterStatus.getJobTrackerState());
+        LOG.debug("JT state = " + clusterStatus.getJobTrackerStatus());
         LOG.debug("Active trackers = " + clusterStatus.getTaskTrackers());
         LOG.debug(
           "Blacklisted trackers = " + clusterStatus.getBlacklistedTrackers());
       }
       status.succeed(this);
       status.setMessage(
-        getName() + " is in state " + clusterStatus.getJobTrackerState());
+        getName() + " is in state " + clusterStatus.getJobTrackerStatus());
     } catch (IOException e) {
       status.fail(this,
                   new IOException(getName() + " : " + e, e));
