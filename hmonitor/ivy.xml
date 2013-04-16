@@ -17,7 +17,7 @@
   ~ limitations under the License.
   -->
 
-<ivy-module version="1.0">
+<ivy-module version="1.0" xmlns:m ="http://ant.apache.org/ivy/maven">
   <info organisation="org.apache.ambari" module="hmonitor">
     <license name="Apache"/>
     <ivyauthor name="Apache" url="http://hadoop.apache.com"/>
@@ -46,27 +46,50 @@
   </publications>
   <dependencies>
 
+     <dependency org="org.apache.hadoop"
+      name="hadoop-mapreduce-client"
+      rev="2.0.0-cdh4.1.2"
+      conf="redist->default"/>
 
     <dependency org="org.apache.hadoop"
-      name="hadoop-core"
-      rev="${hadoop.version}"
+      name="hadoop-common"
+      rev="2.0.0-cdh4.1.2"
       conf="redist->default">
       <exclude org="org.apache.ant"/>
       <exclude org="ant"/>
     </dependency>
     <dependency org="org.apache.hadoop"
+      name="hadoop-hdfs"
+      rev="2.0.0-cdh4.1.2"
+      conf="redist->default"
+      >
+      <artifact name="hadoop-hdfs-tests" type="jar" m:classifier="tests"/>
+      <artifact name="hadoop-hdfs" type="jar" />
+    </dependency>
+    <dependency org="org.apache.hadoop"
+      name="hadoop-core"
+      rev="2.0.0-mr1-cdh4.1.2"
+      conf="redist->default">
+      <exclude org="org.apache.ant"/>
+      <exclude org="ant"/>
+    </dependency>
+     <dependency org="org.apache.hadoop"
+      name="hadoop-mapreduce"
+      rev="2.0.0-cdh4.1.2"
+      conf="redist->default"/>
+
+     <dependency org="org.apache.hadoop"
       name="hadoop-tools"
       rev="${hadoop.version}"
       conf="redist->default"/>
     <dependency org="org.apache.hadoop"
       name="hadoop-test"
       rev="${hadoop.version}"
-      conf="redist->default"/>
-    <dependency org="org.apache.hadoop"
+       conf="redist->default"/>
+     <dependency org="org.apache.hadoop"
       name="hadoop-examples"
       rev="${hadoop.version}"
-      conf="redist->default"/>
-
+       conf="redist->default"/>
 
     <dependency org="junit"
       name="junit"
@@ -131,6 +154,12 @@
       rev="${commons-io.version}"
       conf="redist->default"/>
 
+    <dependency org="commons-logging" name="commons-logging"
+      rev="${commons-logging.version}"
+      conf="redist->default"/>
+    <dependency org="commons-cli" name="commons-cli"
+      rev="${commons-cli.version}"
+      conf="redist->default"/>
     <!--<dependency org="org.apache.hbase" name="hbase" rev="0.92.1"/>-->
 
 
