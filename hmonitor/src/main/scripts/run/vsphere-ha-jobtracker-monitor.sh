@@ -26,6 +26,6 @@ here="`cd ${here}; pwd`"
 
 export HADOOP_CLASSPATH="${here}/hmonitor.jar:${here}/extras/*"
 
-hadoop org.apache.ambari.servicemonitor.MonitorJobTracker -conf ${here}/vm-namenode.xml "$@" 
+hadoop org.apache.ambari.servicemonitor.MonitorJobTracker -conf ${here}/vm-jobtracker.xml "$@" 
 
 
