@@ -32,7 +32,7 @@
 
   <groupId>org.apache.ambari</groupId>
   <artifactId>hmonitor</artifactId>
-  <version>0.1</version>
+  <version>1.0</version>
   <packaging>jar</packaging>
 
   <name>hmonitor</name>
