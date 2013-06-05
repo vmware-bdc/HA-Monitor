@@ -69,9 +69,9 @@
     To fake the vsphere library (and so have invalid RPMs)
     vsphere.lib.fake=true
   </description>
+
   <!-- private values -->
   <property name="guest.app.sdk" location="/home/hadoop/data/GuestSDK/lib" />
-
   <!-- load in build properties; set the project dir first-->
   <property name="hmonitor.project.dir" location="."/>
   <property name="hmonitor.project.parent.dir" location=".."/>
@@ -1126,7 +1126,7 @@ again, but it does ensure your machine isn't building with artifacts that no lon
 
     <!-- set up the symlink to our native library-->
 
-    <newdir name="hadoop.native.d" location="${hadoop.d}/lib/native/Linux-amd64-64"/>
+    <newdir name="hadoop.native.d" location="${hadoop.d}/lib/native"/>
 
     <ln
       link="${hadoop.native.d}/libVMGuestAppMonitorNative.so"
@@ -1425,7 +1425,7 @@ rpm -qf ${rpm.install.dir}/hmonitor.jar ;
 rpm -qf ${rpm.install.dir}/extras/groovy-all-${groovy.version}.jar;
 rpm -qf ${rpm.install.dir}/ham.sh  ;
 rpm -qf ${rpm.install.dir}/libVMGuestAppMonitorNative.so ;
-rpm -qf /usr/lib/hadoop/lib/native/Linux-amd64-64/libVMGuestAppMonitorNative.so;
+rpm -qf /usr/lib/hadoop/lib/native/libVMGuestAppMonitorNative.so;
 rpm -qf /usr/lib64/libappmonitorlib.so;
 rpm -qf ${rpm.install.dir}/template.xml;
 rpm -qf ${rpm.install.dir}/exec-monitor.sh;
