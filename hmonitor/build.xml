@@ -69,7 +69,8 @@
     To fake the vsphere library (and so have invalid RPMs)
     vsphere.lib.fake=true
   </description>
-
+  <!-- private values -->
+  <property name="guest.app.sdk" location="/home/hadoop/data/GuestSDK/lib" />
 
   <!-- load in build properties; set the project dir first-->
   <property name="hmonitor.project.dir" location="."/>

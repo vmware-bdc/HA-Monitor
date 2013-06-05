@@ -328,7 +328,7 @@ public class ProbeWorker implements Runnable {
 
   /**
    * run through all the bootstrap probes and see if they are live.
-   * @return true iff all boot probes succeeded
+   * @return true if all boot probes succeeded
    * @throws ProbeInterruptedException the probe interruption flags
    * @throws ProbeFailedException if a probe failed.
    */

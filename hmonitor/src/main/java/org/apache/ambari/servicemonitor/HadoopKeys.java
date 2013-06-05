@@ -24,7 +24,7 @@ public interface HadoopKeys {
 
   String MAPRED_OUTPUT_DIR = "mapred.output.dir";
   String MAPRED_JOB_TRACKER = "mapred.job.tracker";
-
+  String YARN_JOB_TRACKER = "yarn.job.tracker";
 
   /**
    * key to disable HDFS caching on 1.x {@value}

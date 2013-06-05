@@ -246,7 +246,12 @@ public interface MonitorKeys extends HadoopKeys {
    */
   String JT_PROBE_ENABLED =
     MONITOR_KEY_PREFIX + "jtprobe.enabled";
-
+  
+  /**
+   * Probe enabled/disabled flag Key: {@value}
+   */
+  String RM_PROBE_ENABLED =
+    MONITOR_KEY_PREFIX + "rmprobe.enabled";
   /**
    * Port probing key : bootstrap timeout -how long in milliseconds should the
    * port probing take to connect before the failure to connect is considered a

@@ -170,7 +170,7 @@ public class Monitor extends ToolPlusImpl implements MonitorKeys, Interrupted {
       LOG.debug("JT probe disabled");
     }
 
-
+    
     List<Probe> dependencyProbes = new ArrayList<Probe>(1);
 
     if (conf.getBoolean(MONITOR_DEPENDENCY_DFSLIVE, false)) {
